@@ -1,3 +1,6 @@
 log/**
 build/**
 install/**
+
+.vscode/**
+.cache/**

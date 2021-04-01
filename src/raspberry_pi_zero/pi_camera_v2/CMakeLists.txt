@@ -20,12 +20,13 @@ set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(custom_interfaces REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
 add_executable(pi_camera_v2 src/pi_camera_v2.cpp)
-ament_target_dependencies(pi_camera_v2 rclcpp std_msgs)
+ament_target_dependencies(pi_camera_v2 rclcpp std_msgs custom_interfaces)
 
 target_include_directories(pi_camera_v2 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

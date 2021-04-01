@@ -1,0 +1,11 @@
+int32 bounds_width
+int32 bounds_height
+int32 bounds_left
+int32 bounds_top
+int32 defrect_width
+int32 defrect_height
+int32 defrect_left
+int32 defrect_top
+int32 pixelaspect_numerator
+int32 pixelaspect_denominator
+

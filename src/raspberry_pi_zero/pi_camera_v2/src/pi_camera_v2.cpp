@@ -10,11 +10,15 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
+
 #include <chrono>
 #include <cstdio>
 #include <functional>
 #include <memory>
-#include <std_msgs/msg/detail/string__struct.hpp>
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
@@ -25,6 +29,7 @@ using namespace std::chrono_literals;
 static const char DEVICE[] = "/dev/video0";
 
 int fd;
+int fps_count;
 unsigned int num_buffers;
 struct buf {
     void* start;
@@ -136,7 +141,7 @@ int init_mmap() {
     assert(buffers != NULL);
 
     num_buffers = reqbuf.count;
-    printf("MMAP Buffer number: %d", num_buffers);
+    printf("MMAP Buffer number: %d\n", num_buffers);
 
     struct v4l2_buffer buffer;
     for (unsigned int i = 0; i < reqbuf.count; i++) {
@@ -281,6 +286,13 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    if (-1 == start_capturing()) {
+        printf("ERROR: starting stream");
+        cleanup();
+        close(fd);
+        return -1;
+    }
+
     fd_set fds;
     struct timeval tv;
     int r;
@@ -308,6 +320,7 @@ int main(int argc, char** argv) {
                 return -1;
             }
         }
+        fps_count++;
     }
 
     if (-1 == stop_capturing()) {

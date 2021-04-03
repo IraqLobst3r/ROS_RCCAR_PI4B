@@ -17,22 +17,26 @@
 int main(int argc, char* argv[]) {
     rclcpp::init(argc, argv);
     rclcpp::Node::SharedPtr cam_node = rclcpp::Node::make_shared("pi_camera");
+    image_transport::ImageTransport it(cam_node);
+    auto publisher = it.advertise("cam_image", 1);
 
     /*****************************************************************************************/
 
     cv::Mat frame;
     printf("Opening camera...\n");
-    cv::VideoCapture capture(0);  // open the first camera
+    cv::VideoCapture capture(cv::CAP_V4L);  // open the first camera
     if (!capture.isOpened()) {
         printf("ERROR: Can't initialize camera capture");
         return 1;
     }
 
-    /* int width = capture.get(cv::CAP_PROP_FRAME_WIDTH); */
-    /* int height = capture.get(cv::CAP_PROP_FRAME_HEIGHT); */
+    capture.set(cv::CAP_PROP_FRAME_WIDTH, 1920.0);
+    capture.set(cv::CAP_PROP_FRAME_HEIGHT, 1080.0);
+    capture.set(cv::CAP_PROP_MODE, cv::CAP_MODE_BGR);
     printf("Frame width: %f \n", capture.get(cv::CAP_PROP_FRAME_WIDTH));
     printf("     height: %f \n", capture.get(cv::CAP_PROP_FRAME_HEIGHT));
     printf("Capturing FPS: %f \n", capture.get(cv::CAP_PROP_FPS));
+    printf("Capturing MODE: %f \n", capture.get(cv::CAP_PROP_MODE));
 
     size_t nFrames = 0;
     /* bool enableProcessing = false; */
@@ -68,9 +72,15 @@ int main(int argc, char* argv[]) {
             processingTime = 0;
         }
         int64 tp0 = cv::getTickCount();
-        sensor_msgs::msg::Image::Ptr image_out =
-            cv_bridge::CvImage(std_msgs::msg::Header(), "brg8", frame)
+        sensor_msgs::msg::Image::SharedPtr image_out =
+            cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", frame)
                 .toImageMsg();
+        image_out->header.frame_id = "cam_image";
+        image_out->header.stamp = cam_node->now();
+
+        if (publisher.getNumSubscribers() > 0) {
+            publisher.publish(image_out);
+        }
 
         processingTime += cv::getTickCount() - tp0;
         count++;

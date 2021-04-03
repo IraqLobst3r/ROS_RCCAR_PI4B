@@ -41,7 +41,7 @@ class PiCameraV4l2 : public rclcpp::Node {
     PiCameraV4l2(int fd) : Node("pi_camera_v4l2"), fd_(fd) {
         this->get_parameter_or("width", width_, 1920);
         this->get_parameter_or("height", height_, 1080);
-        this->get_parameter_or("fmt_index", fmt_index_, 4);
+        this->get_parameter_or("fmt_index", fmt_index_, 2);
         this->get_parameter_or("mmap_req_buffer_num", req_buffer_num_, 5);
     }
     int init_device() {
@@ -51,6 +51,7 @@ class PiCameraV4l2 : public rclcpp::Node {
 
         // get format
         if (-1 == xioctl(VIDIOC_ENUM_FMT, &fmtdesc)) {
+            perror("VIDIOC_ENUM_FMT");
             return -1;
         }
 
@@ -63,6 +64,7 @@ class PiCameraV4l2 : public rclcpp::Node {
         fmt.fmt.pix.field = V4L2_FIELD_NONE;
 
         if (-1 == xioctl(VIDIOC_S_FMT, &fmt)) {
+            perror("VIDIOC_S_FMT");
             return -1;
         }
         print_used_format(&fmt);
@@ -85,14 +87,17 @@ class PiCameraV4l2 : public rclcpp::Node {
 
             // Enqueue the buffer with VIDIOC_QBUF
             if (-1 == xioctl(VIDIOC_QBUF, &buffer)) {
+                perror("VIDIOC_QBUF");
                 return -1;
             }
         }
 
         type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (-1 == xioctl(VIDIOC_STREAMON, &type)) {
+            perror("VIDIOC_STREAMON");
             return -1;
         }
+        t0 = cv::getTickCount();
         return 0;
     }
 
@@ -113,7 +118,7 @@ class PiCameraV4l2 : public rclcpp::Node {
         if (-1 == r && errno == EINTR) {
             return 0;
         } else if (r == -1) {
-            perror("ERROR: select");
+            printf("ERROR: select \n");
             return -1;
         } else if (r == 0) {
             fprintf(stderr, "select timeout\n");
@@ -130,7 +135,7 @@ class PiCameraV4l2 : public rclcpp::Node {
     int stop_capturing() {
         enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (-1 == xioctl(VIDIOC_STREAMOFF, &type)) {
-            printf("cannot set stream off");
+            perror("VIDIOC_STREAMOFF");
             return -1;
         }
         return 0;
@@ -146,6 +151,7 @@ class PiCameraV4l2 : public rclcpp::Node {
     int print_caps() {
         struct v4l2_capability caps = {};
         if (-1 == xioctl(VIDIOC_QUERYCAP, &caps)) {
+            perror("VIDIOC_QUERYCAP");
             return -1;
         }
         printf("Driver Caps:\n"
@@ -196,6 +202,7 @@ class PiCameraV4l2 : public rclcpp::Node {
         reqbuf.memory = V4L2_MEMORY_MMAP;
         reqbuf.count = req_buffer_num_;
         if (-1 == xioctl(VIDIOC_REQBUFS, &reqbuf)) {
+            perror("VIDIOC_REQBUFS");
             return -1;
         }
         if (reqbuf.count < 2) {
@@ -217,6 +224,7 @@ class PiCameraV4l2 : public rclcpp::Node {
             buffer.index = i;
 
             if (-1 == xioctl(VIDIOC_QUERYBUF, &buffer)) {
+                perror("VIDIOC_QUERYBUF");
                 return -1;
             }
 
@@ -278,6 +286,7 @@ class PiCameraV4l2 : public rclcpp::Node {
 
         // Enqueue the buffer again
         if (-1 == xioctl(VIDIOC_QBUF, &buffer)) {
+            perror("VIDIOC_QBUF");
             return -1;
         }
         return 0;
@@ -326,7 +335,7 @@ class PiCameraV4l2 : public rclcpp::Node {
     unsigned int num_buffers_;
     int req_buffer_num_;
     size_t nFrames = 0;
-    int64 t0 = cv::getTickCount();
+    int64 t0 = 0;
     int64 processingTime = 0;
     image_transport::Publisher* publisher_;
 };
@@ -378,6 +387,7 @@ int main(int argc, char** argv) {
     }
 
     if (-1 == cam_node->stop_capturing()) {
+        cam_node->cleanup();
         close(fd);
         return -1;
     }

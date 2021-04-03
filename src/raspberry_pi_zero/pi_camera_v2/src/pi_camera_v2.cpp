@@ -268,7 +268,7 @@ int main(int argc, char** argv) {
 
     int width = 1920;
     int height = 1080;
-    int fmt_index = 4;
+    int fmt_index = 2;
 
     // open camera file
     fd = open(DEVICE, O_RDWR);
@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
 
     cam_node->get_parameter_or("width", width, 1920);
     cam_node->get_parameter_or("height", height, 1080);
-    cam_node->get_parameter_or("fmt_index", fmt_index, 4);
+    cam_node->get_parameter_or("fmt_index", fmt_index, 2);
 
     if (0 != print_caps()) {
         printf("ERROR: print_caps");
@@ -309,7 +309,8 @@ int main(int argc, char** argv) {
     fd_set fds;
     struct timeval tv;
     int r;
-    while (rclcpp::ok()) {
+    int count = 0;
+    while (count < 100) {
         // Clear the set of file descriptors to monitor, then add the fd
         // for our device
         FD_ZERO(&fds);
@@ -333,6 +334,7 @@ int main(int argc, char** argv) {
                 return -1;
             }
         }
+        count++;
     }
 
     if (-1 == stop_capturing()) {

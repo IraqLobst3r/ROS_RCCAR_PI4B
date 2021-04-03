@@ -31,16 +31,29 @@ include_directories(include ${OpenCV_INCLUDE_DIRS})
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
-add_executable(pi_camera_v2 src/pi_camera_v2.cpp)
-target_link_libraries(pi_camera_v2 ${OpenCV_LIBRARIES})
-ament_target_dependencies(pi_camera_v2 rclcpp std_msgs image_transport cv_bridge sensor_msgs)
+add_executable(pi_camera_v2_cv src/pi_camera_v2_cv.cpp)
+target_link_libraries(pi_camera_v2_cv ${OpenCV_LIBRARIES})
+ament_target_dependencies(pi_camera_v2_cv rclcpp std_msgs image_transport cv_bridge sensor_msgs)
 
-target_include_directories(pi_camera_v2 PUBLIC
+target_include_directories(pi_camera_v2_cv PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-install(TARGETS pi_camera_v2
+add_executable(pi_camera_v2_v4l2 src/pi_camera_v2_v4l2.cpp)
+target_link_libraries(pi_camera_v2_v4l2 ${OpenCV_LIBRARIES})
+ament_target_dependencies(pi_camera_v2_v4l2 rclcpp std_msgs image_transport cv_bridge sensor_msgs)
+
+target_include_directories(pi_camera_v2_v4l2 PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+install(TARGETS pi_camera_v2_cv pi_camera_v2_v4l2
   DESTINATION lib/${PROJECT_NAME})
+
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

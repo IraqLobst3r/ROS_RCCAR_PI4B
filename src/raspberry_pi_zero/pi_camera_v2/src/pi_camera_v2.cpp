@@ -10,17 +10,24 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/opencv.hpp>
-
 #include <chrono>
 #include <cstdio>
 #include <functional>
 #include <memory>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
+#include <rclcpp/clock.hpp>
+#include <rclcpp/node.hpp>
+#include <rclcpp/time.hpp>
+#include <rclcpp/timer.hpp>
+#include <std_msgs/msg/detail/header__struct.hpp>
 #include <string>
 
+#include "cv_bridge/cv_bridge.h"
+#include "image_transport/image_transport.hpp"
+#include "image_transport/publisher.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -29,8 +36,9 @@ using namespace std::chrono_literals;
 static const char DEVICE[] = "/dev/video0";
 
 int fd;
-int fps_count;
+int seq;
 unsigned int num_buffers;
+rclcpp::Clock::SharedPtr time_now;
 struct buf {
     void* start;
     size_t length;
@@ -191,18 +199,21 @@ int start_capturing() {
     return 0;
 }
 
-void process_image(
-    const void* pBuffer,
-    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>> pub) {
-    auto message = std_msgs::msg::String();
-    message.data = "Hello, world! ";
-    pub->publish(message);
+void process_image(const void* pBuffer, image_transport::Publisher* pub,
+                   int width, int height) {
+    cv::Mat image = cv::Mat(height, width, CV_8UC3, (void*)pBuffer);
+    seq = seq + 1;
+    sensor_msgs::msg::Image::Ptr image_out =
+        cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", image).toImageMsg();
+    image_out->header.frame_id = "pi_cam";
+    image_out->header.stamp = time_now->now();
 
+    pub->publish(image_out);
     fputc('.', stdout);
     fflush(stdout);
 }
 
-int read_frame(std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>> pub) {
+int read_frame(image_transport::Publisher* pub, int width, int height) {
     struct v4l2_buffer buffer;
     memset(&buffer, 0, sizeof(buffer));
     buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -223,7 +234,7 @@ int read_frame(std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>> pub) {
     }
 
     assert(buffer.index < num_buffers);
-    process_image(buffers[buffer.index].start, pub);
+    process_image(buffers[buffer.index].start, pub, width, height);
 
     // Enqueue the buffer again
     if (-1 == xioctl(fd, VIDIOC_QBUF, &buffer)) {
@@ -250,8 +261,10 @@ void cleanup() {
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
     auto cam_node = rclcpp::Node::make_shared("pi_camera");
-    auto publisher =
-        cam_node->create_publisher<std_msgs::msg::String>("image", 10);
+    time_now = cam_node->get_clock();
+
+    image_transport::ImageTransport it(cam_node);
+    auto publisher = it.advertise("image", 1);
 
     int width = 1920;
     int height = 1080;
@@ -316,11 +329,10 @@ int main(int argc, char** argv) {
             fprintf(stderr, "select timeout\n");
             return -1;
         } else {
-            if (-1 == read_frame(publisher)) {
+            if (-1 == read_frame(&publisher, width, height)) {
                 return -1;
             }
         }
-        fps_count++;
     }
 
     if (-1 == stop_capturing()) {

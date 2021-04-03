@@ -12,7 +12,11 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[
                 {"width": 1920,
-                    "height": 1080}
+                    "height": 1080,
+                    "fmt_index": 4,
+                    "fmt_grey": False,
+                    "mmap_req_buffer_num": 5
+                    }
             ]
         )
     ])

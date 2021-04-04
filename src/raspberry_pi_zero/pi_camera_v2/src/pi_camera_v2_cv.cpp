@@ -5,6 +5,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
+#include <opencv2/videoio/videoio_c.h>
 #include <rclcpp/node.hpp>
 #include <rclcpp/utilities.hpp>
 #include <std_msgs/msg/detail/header__struct.hpp>
@@ -24,6 +25,8 @@ int main(int argc, char* argv[]) {
     cv::Mat frame;
     printf("Opening camera...\n");
     cv::VideoCapture capture(cv::CAP_V4L2); // open the first camera
+    capture.set(cv::CAP_PROP_FOURCC, CV_FOURCC('H', '2', '6', '4'));
+
     if (!capture.isOpened()) {
         printf("ERROR: Can't initialize camera capture");
         return 1;
@@ -75,14 +78,14 @@ int main(int argc, char* argv[]) {
             processingTime = 0;
         }
         int64 tp0 = cv::getTickCount();
-        sensor_msgs::msg::Image::SharedPtr image_out =
-            cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", frame).toImageMsg();
-        image_out->header.frame_id = "cam_image";
-        image_out->header.stamp = cam_node->now();
+        /* sensor_msgs::msg::Image::SharedPtr image_out = */
+        /*     cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", frame).toImageMsg(); */
+        /* image_out->header.frame_id = "cam_image"; */
+        /* image_out->header.stamp = cam_node->now(); */
 
-        if (publisher.getNumSubscribers() > 0) {
-            publisher.publish(image_out);
-        }
+        /* if (publisher.getNumSubscribers() > 0) { */
+        /*     publisher.publish(image_out); */
+        /* } */
 
         processingTime += cv::getTickCount() - tp0;
         count++;

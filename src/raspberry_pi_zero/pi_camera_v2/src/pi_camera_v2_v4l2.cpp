@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <custom_interfaces/msg/detail/h264_image__struct.hpp>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/videodev2.h>
@@ -26,6 +27,7 @@
 #include <std_msgs/msg/detail/header__struct.hpp>
 #include <string>
 
+#include "custom_interfaces/msg/h264_image.hpp"
 #include "cv_bridge/cv_bridge.h"
 #include "image_transport/image_transport.hpp"
 #include "image_transport/publisher.hpp"
@@ -39,9 +41,12 @@ static const char DEVICE[] = "/dev/video0";
 class PiCameraV4l2 : public rclcpp::Node {
   public:
     PiCameraV4l2(int fd) : Node("pi_camera_v4l2"), fd_(fd) {
+        publisher_ =
+            this->create_publisher<custom_interfaces::msg::H264Image>("pi_cam/h264_image", 10);
+
         this->declare_parameter<int>("width", 1920);
         this->declare_parameter<int>("height", 1080);
-        this->declare_parameter<int>("fmt_index", 2);
+        this->declare_parameter<int>("fmt_index", 4);
         this->declare_parameter<bool>("fmt_grey", false);
         this->declare_parameter<int>("mmap_req_buffer_num", 5);
 
@@ -113,7 +118,7 @@ class PiCameraV4l2 : public rclcpp::Node {
         return 0;
     }
 
-    void set_publisher(image_transport::Publisher* pub) { publisher_ = pub; }
+    /* void set_publisher(image_transport::Publisher* pub) { publisher_ = pub; } */
 
     int stream_cam() {
         // Clear the set of file descriptors to monitor, then add the fd
@@ -293,7 +298,7 @@ class PiCameraV4l2 : public rclcpp::Node {
         }
 
         int64 tp0 = cv::getTickCount();
-        process_image(buffers[buffer.index].start);
+        process_image(buffers[buffer.index].start, buffers[buffer.index].length);
         processingTime += cv::getTickCount() - tp0;
 
         // Enqueue the buffer again
@@ -304,7 +309,15 @@ class PiCameraV4l2 : public rclcpp::Node {
         return 0;
     }
 
-    void process_image(const void* pBuffer) {
+    void process_image(const void* pBuffer, const size_t len) {
+        custom_interfaces::msg::H264Image h264_msg;
+        h264_msg.header.frame_id = "pi_cam";
+        h264_msg.header.stamp = this->now();
+        h264_msg.seq = nFrames;
+        size_t length = len / sizeof(uint8_t);
+
+        std::vector<uint8_t> image((const uint8_t*)pBuffer, (const uint8_t*)pBuffer + length);
+        h264_msg.data.insert(h264_msg.data.begin(), &image[0], &image[image.size()]);
         /* cv::Mat image = cv::Mat(cv::Size(width_, height_), CV_8UC3,
          * (void*)pBuffer); */
 
@@ -315,9 +328,9 @@ class PiCameraV4l2 : public rclcpp::Node {
         /* image_out->header.frame_id = "pi_cam"; */
         /* image_out->header.stamp = this->now(); */
 
-        /* if (publisher_->getNumSubscribers() > 0) { */
-        /*     publisher_->publish(image_out); */
-        /* } */
+        if (publisher_->get_subscription_count() > 0) {
+            publisher_->publish(h264_msg);
+        }
     }
 
     void print_used_format(struct v4l2_format* fmt) {
@@ -352,7 +365,8 @@ class PiCameraV4l2 : public rclcpp::Node {
     bool fmt_grey_;
     int64 t0 = 0;
     int64 processingTime = 0;
-    image_transport::Publisher* publisher_;
+    /* image_transport::Publisher* publisher_; */
+    rclcpp::Publisher<custom_interfaces::msg::H264Image>::SharedPtr publisher_;
 };
 
 int main(int argc, char** argv) {
@@ -391,7 +405,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    cam_node->set_publisher(&publisher);
+    /* cam_node->set_publisher(&publisher); */
 
     int count = 0;
     while (count < 100 && rclcpp::ok()) {

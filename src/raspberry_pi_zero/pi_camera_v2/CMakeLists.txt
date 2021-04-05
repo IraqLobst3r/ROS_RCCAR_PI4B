@@ -24,6 +24,7 @@ find_package(custom_interfaces REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(custom_interfaces REQUIRED)
 
 find_package(OpenCV REQUIRED)
 include_directories(include ${OpenCV_INCLUDE_DIRS})
@@ -33,7 +34,7 @@ include_directories(include ${OpenCV_INCLUDE_DIRS})
 
 add_executable(pi_camera_v2_cv src/pi_camera_v2_cv.cpp)
 target_link_libraries(pi_camera_v2_cv ${OpenCV_LIBRARIES})
-ament_target_dependencies(pi_camera_v2_cv rclcpp std_msgs image_transport cv_bridge sensor_msgs)
+ament_target_dependencies(pi_camera_v2_cv rclcpp std_msgs image_transport cv_bridge sensor_msgs custom_interfaces)
 
 target_include_directories(pi_camera_v2_cv PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -41,7 +42,7 @@ target_include_directories(pi_camera_v2_cv PUBLIC
 
 add_executable(pi_camera_v2_v4l2 src/pi_camera_v2_v4l2.cpp)
 target_link_libraries(pi_camera_v2_v4l2 ${OpenCV_LIBRARIES})
-ament_target_dependencies(pi_camera_v2_v4l2 rclcpp std_msgs image_transport cv_bridge sensor_msgs)
+ament_target_dependencies(pi_camera_v2_v4l2 rclcpp std_msgs image_transport cv_bridge sensor_msgs custom_interfaces)
 
 target_include_directories(pi_camera_v2_v4l2 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

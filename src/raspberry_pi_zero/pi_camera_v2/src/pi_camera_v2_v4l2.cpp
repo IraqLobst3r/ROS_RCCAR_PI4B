@@ -417,7 +417,7 @@ int main(int argc, char** argv) {
         if (-1 == cam_node->stream_cam()) {
             break;
         }
-        count++;
+        /* count++; */
     }
 
     if (-1 == cam_node->stop_capturing()) {

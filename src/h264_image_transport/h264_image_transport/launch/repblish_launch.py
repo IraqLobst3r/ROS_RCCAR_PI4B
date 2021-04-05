@@ -7,8 +7,11 @@ def generate_launch_description():
     return LaunchDescription([
         # Subscribe to /image_raw/h264, decode, and republish on /repub_raw
         # All remappings are shown for clarity
-        Node(package='image_transport', node_executable='republish', output='screen',
-             node_name='republish_node', arguments=[
+        Node(package='image_transport', 
+            executable='republish', 
+            output='screen',
+             name='republish_node', 
+             arguments=[
                 'h264',  # Input
                 'raw',  # Output
              ], remappings=[

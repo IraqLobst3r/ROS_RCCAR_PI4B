@@ -2,7 +2,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/videodev2.h>
-#include <opencv2/core/types.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +9,7 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <opencv2/core/types.hpp>
 
 #include <chrono>
 #include <cstdio>
@@ -32,10 +32,10 @@ using namespace std::chrono_literals;
 static const char DEVICE[] = "/dev/video0";
 
 class PiCameraV4l2 : public rclcpp::Node {
-  public:
+   public:
     PiCameraV4l2(int fd) : Node("pi_camera_v4l2"), fd_(fd) {
-        publisher_ =
-            this->create_publisher<custom_interfaces::msg::H264Image>("pi_cam/h264_image", 10);
+        publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
+            "pi_cam/h264_image", 10);
 
         this->declare_parameter<int>("width", 1920);
         this->declare_parameter<int>("height", 1080);
@@ -165,14 +165,16 @@ class PiCameraV4l2 : public rclcpp::Node {
             perror("VIDIOC_QUERYCAP");
             return -1;
         }
-        printf("Driver Caps:\n"
-               "  Driver: \"%s\"\n"
-               "  Card: \"%s\"\n"
-               "  Bus: \"%s\"\n"
-               "  Version: %u.%u.%u\n"
-               "  Capabilities: %08x\n",
-               caps.driver, caps.card, caps.bus_info, (caps.version >> 16) & 0xFF,
-               (caps.version >> 8) & 0xFF, (caps.version) & 0XFF, caps.capabilities);
+        printf(
+            "Driver Caps:\n"
+            "  Driver: \"%s\"\n"
+            "  Card: \"%s\"\n"
+            "  Bus: \"%s\"\n"
+            "  Version: %u.%u.%u\n"
+            "  Capabilities: %08x\n",
+            caps.driver, caps.card, caps.bus_info, (caps.version >> 16) & 0xFF,
+            (caps.version >> 8) & 0xFF, (caps.version) & 0XFF,
+            caps.capabilities);
         return 0;
     }
 
@@ -193,7 +195,7 @@ class PiCameraV4l2 : public rclcpp::Node {
         }
     }
 
-  private:
+   private:
     int xioctl(long unsigned int request, void* arg) {
         int ret_;
         do {
@@ -240,8 +242,8 @@ class PiCameraV4l2 : public rclcpp::Node {
             }
 
             buffers[i].length = buffer.length;
-            buffers[i].start =
-                mmap(NULL, buffer.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, buffer.m.offset);
+            buffers[i].start = mmap(NULL, buffer.length, PROT_READ | PROT_WRITE,
+                                    MAP_SHARED, fd_, buffer.m.offset);
 
             if (MAP_FAILED == buffers[i].start) {
                 perror("MMAP");
@@ -260,14 +262,14 @@ class PiCameraV4l2 : public rclcpp::Node {
         // Dequeue a buffer
         if (-1 == xioctl(VIDIOC_DQBUF, &buffer)) {
             switch (errno) {
-            case EAGAIN:
-                // No buffer in the outgoing queue
-                return -2;
-            case EIO:
-                // fall through
-            default:
-                perror("VIDIOC_DQBUF");
-                return -1;
+                case EAGAIN:
+                    // No buffer in the outgoing queue
+                    return -2;
+                case EIO:
+                    // fall through
+                default:
+                    perror("VIDIOC_DQBUF");
+                    return -1;
             }
         }
 
@@ -277,22 +279,27 @@ class PiCameraV4l2 : public rclcpp::Node {
         if (nFrames % 10 == 0) {
             const int N = 10;
             int64 t1 = cv::getTickCount();
-            std::cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames)
+            std::cout << "Frames captured: "
+                      << cv::format("%5lld", (long long int)nFrames)
                       << "    Average FPS: "
-                      << cv::format("%9.1f", (double)cv::getTickFrequency() * N / (t1 - t0))
+                      << cv::format("%9.1f", (double)cv::getTickFrequency() *
+                                                 N / (t1 - t0))
                       << "    Average time per frame: "
                       << cv::format("%9.2f ms",
-                                    (double)(t1 - t0) * 1000.0f / (N * cv::getTickFrequency()))
+                                    (double)(t1 - t0) * 1000.0f /
+                                        (N * cv::getTickFrequency()))
                       << "    Average processing time: "
                       << cv::format("%9.2f ms",
-                                    (double)(processingTime)*1000.0f / (N * cv::getTickFrequency()))
+                                    (double)(processingTime)*1000.0f /
+                                        (N * cv::getTickFrequency()))
                       << std::endl;
             t0 = t1;
             processingTime = 0;
         }
 
         int64 tp0 = cv::getTickCount();
-        process_image(buffers[buffer.index].start, buffers[buffer.index].length);
+        process_image(buffers[buffer.index].start,
+                      buffers[buffer.index].length);
         processingTime += cv::getTickCount() - tp0;
 
         // Enqueue the buffer again
@@ -310,8 +317,10 @@ class PiCameraV4l2 : public rclcpp::Node {
         h264_msg.seq = nFrames;
         size_t length = len / sizeof(uint8_t);
 
-        std::vector<uint8_t> image((const uint8_t*)pBuffer, (const uint8_t*)pBuffer + length);
-        h264_msg.data.insert(h264_msg.data.begin(), &image[0], &image[image.size()]);
+        std::vector<uint8_t> image((const uint8_t*)pBuffer,
+                                   (const uint8_t*)pBuffer + length);
+        h264_msg.data.insert(h264_msg.data.begin(), &image[0],
+                             &image[image.size()]);
         /* cv::Mat image = cv::Mat(cv::Size(width_, height_), CV_8UC3,
          * (void*)pBuffer); */
 
@@ -330,12 +339,14 @@ class PiCameraV4l2 : public rclcpp::Node {
     void print_used_format(struct v4l2_format* fmt) {
         char format_code[5];
         strncpy(format_code, (char*)&fmt->fmt.pix.pixelformat, 5);
-        printf("Set format:\n"
-               " Width: %d\n"
-               " Height: %d\n"
-               " Pixel format: %s\n"
-               " Field: %d\n\n",
-               fmt->fmt.pix.width, fmt->fmt.pix.height, format_code, fmt->fmt.pix.field);
+        printf(
+            "Set format:\n"
+            " Width: %d\n"
+            " Height: %d\n"
+            " Pixel format: %s\n"
+            " Field: %d\n\n",
+            fmt->fmt.pix.width, fmt->fmt.pix.height, format_code,
+            fmt->fmt.pix.field);
     }
 
     struct buf {

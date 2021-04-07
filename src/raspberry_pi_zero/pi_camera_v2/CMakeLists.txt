@@ -33,6 +33,7 @@ pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
     libavformat
     libavcodec
     libavutil
+    libswscale
 )
 
 include_directories(include ${OpenCV_INCLUDE_DIRS})

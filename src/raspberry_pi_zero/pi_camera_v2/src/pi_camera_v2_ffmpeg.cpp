@@ -19,7 +19,7 @@ class PiCamera : public rclcpp::Node {
         publisher_ =
             this->create_publisher<custom_interfaces::msg::H264Image>("pi_cam/h264_image", 10);
 
-        this->declare_parameter<std::string>("size", "1920x1080");
+        this->declare_parameter<std::string>("size", "800x600");
         this->declare_parameter<std::string>("fps", "30");
         this->get_parameter("size", size_);
         this->get_parameter("fps", fps_);

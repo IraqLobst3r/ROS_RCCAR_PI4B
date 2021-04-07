@@ -60,8 +60,6 @@ class PiCamera : public rclcpp::Node {
             RCLCPP_ERROR_STREAM(get_logger(), "Could not open the v4l device: " << fd_);
             throw std::runtime_error("Could not open the v4l device");
         }
-
-        this->start_stream();
     }
 
     void start_stream() {
@@ -97,7 +95,7 @@ class PiCamera : public rclcpp::Node {
             int64 tp0 = cv::getTickCount();
             // Copy to the ROS message and free the packet
             if (publisher_->get_subscription_count() > 0) {
-                h264_msg.data.insert(h264_msg.data.end(), &packet.data[0],
+                h264_msg.data.insert(h264_msg.data.begin(), &packet.data[0],
                                      &packet.data[packet.size]);
                 h264_msg.header.stamp = this->now();
                 publisher_->publish(h264_msg);
@@ -133,7 +131,7 @@ int main(int argc, char** argv) {
     /* setvbuf(stdout, nullptr, _IONBF, BUFSIZ); */
     rclcpp::init(argc, argv);
     std::shared_ptr<PiCamera> cam_node = std::make_shared<PiCamera>();
-    rclcpp::spin(cam_node);
+    cam_node->start_stream();
     rclcpp::shutdown();
     return 0;
 }

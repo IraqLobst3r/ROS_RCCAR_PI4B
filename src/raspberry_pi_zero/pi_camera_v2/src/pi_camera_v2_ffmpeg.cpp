@@ -107,6 +107,7 @@ class PiCamera : public rclcpp::Node {
             processingTime += cv::getTickCount() - tp0;
         }
         // Close v4l device
+        RCLCPP_INFO(this->get_logger(), "Close v4l2 device");
         avformat_close_input(&format_context_);
     }
 
@@ -131,7 +132,8 @@ class PiCamera : public rclcpp::Node {
 int main(int argc, char** argv) {
     /* setvbuf(stdout, nullptr, _IONBF, BUFSIZ); */
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<PiCamera>());
+    std::shared_ptr<PiCamera> cam_node = std::make_shared<PiCamera>();
+    rclcpp::spin(cam_node);
     rclcpp::shutdown();
     return 0;
 }

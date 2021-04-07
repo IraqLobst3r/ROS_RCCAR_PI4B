@@ -11,7 +11,7 @@ def generate_launch_description():
             output="screen",
             emulate_tty=True,
             parameters=[
-                {"widthxheight": "1920x1080",
+                {"size": "800x600",
                     "fps": "30",
                     }
             ]

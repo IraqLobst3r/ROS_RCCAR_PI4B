@@ -19,10 +19,15 @@ class PiCamera : public rclcpp::Node {
         publisher_ =
             this->create_publisher<custom_interfaces::msg::H264Image>("pi_cam/h264_image", 10);
 
-        this->declare_parameter<std::string>("widthxheight", "1920x1080");
+        this->declare_parameter<std::string>("size", "1920x1080");
         this->declare_parameter<std::string>("fps", "30");
-        this->get_parameter("widthxheight", size_);
+        this->get_parameter("size", size_);
         this->get_parameter("fps", fps_);
+
+        RCLCPP_INFO_STREAM(get_logger(), "Parameter input_fd: " << fd_);
+        RCLCPP_INFO_STREAM(get_logger(), "Parameter fps: " << fps_);
+        RCLCPP_INFO_STREAM(get_logger(), "Parameter size: " << size_);
+        RCLCPP_INFO_STREAM(get_logger(), "Parameter frame_id: " << frame_id_);
 
         // Initialize libavdevice and register all the input and output devices.
         avdevice_register_all();
@@ -30,8 +35,8 @@ class PiCamera : public rclcpp::Node {
 
         // Device drivers appear as formats in ffmpeg
         // Find the v4l driver
-        input_format_ = av_find_input_format("video4linux2");
-        if (!input_format_) {
+        AVInputFormat* input_format = av_find_input_format("video4linux2");
+        if (!input_format) {
             RCLCPP_ERROR(get_logger(), "Could not find the v4l driver");
             throw std::runtime_error("Could not find the v4l driver");
         }
@@ -62,7 +67,7 @@ class PiCamera : public rclcpp::Node {
     void start_stream() {
         while (rclcpp::ok()) {
             custom_interfaces::msg::H264Image h264_msg;
-            h264_msg.header.frame_id = "pi_cam";
+            h264_msg.header.frame_id = frame_id_;
             h264_msg.seq = nFrames_++;
 
             if (nFrames_ % 10 == 0) {
@@ -116,6 +121,7 @@ class PiCamera : public rclcpp::Node {
     int64 processingTime = 0;
     std::string size_;
     std::string fps_;
+    std::string frame_id_ = "pi_cam";
     std::string fd_ = "/dev/video0";
     AVFormatContext* format_context_{nullptr};
     AVInputFormat* input_format_{nullptr};
@@ -123,7 +129,7 @@ class PiCamera : public rclcpp::Node {
 };
 
 int main(int argc, char** argv) {
-    setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
+    /* setvbuf(stdout, nullptr, _IONBF, BUFSIZ); */
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<PiCamera>());
     rclcpp::shutdown();

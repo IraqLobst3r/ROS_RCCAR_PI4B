@@ -27,6 +27,14 @@ find_package(sensor_msgs REQUIRED)
 find_package(custom_interfaces REQUIRED)
 
 find_package(OpenCV REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
+    libavdevice
+    libavformat
+    libavcodec
+    libavutil
+)
+
 include_directories(include ${OpenCV_INCLUDE_DIRS})
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -48,7 +56,15 @@ target_include_directories(pi_camera_v2_v4l2 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-install(TARGETS pi_camera_v2_cv pi_camera_v2_v4l2
+add_executable(pi_camera_v2_ffmpeg src/pi_camera_v2_ffmpeg.cpp)
+target_link_libraries(pi_camera_v2_ffmpeg ${OpenCV_LIBRARIES} PkgConfig::LIBAV)
+ament_target_dependencies(pi_camera_v2_ffmpeg rclcpp std_msgs image_transport cv_bridge sensor_msgs custom_interfaces)
+
+target_include_directories(pi_camera_v2_ffmpeg PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+install(TARGETS pi_camera_v2_cv pi_camera_v2_v4l2 pi_camera_v2_ffmpeg
   DESTINATION lib/${PROJECT_NAME})
 
 install(

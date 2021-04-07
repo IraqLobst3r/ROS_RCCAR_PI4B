@@ -30,8 +30,8 @@ class PiCamera : public rclcpp::Node {
 
         // Device drivers appear as formats in ffmpeg
         // Find the v4l driver
-        AVInputFormat* input_format = av_find_input_format("video4linux2");
-        if (!input_format) {
+        input_format_ = av_find_input_format("video4linux2");
+        if (!input_format_) {
             RCLCPP_ERROR(get_logger(), "Could not find the v4l driver");
             throw std::runtime_error("Could not find the v4l driver");
         }
@@ -123,6 +123,7 @@ class PiCamera : public rclcpp::Node {
 };
 
 int main(int argc, char** argv) {
+    setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<PiCamera>());
     rclcpp::shutdown();

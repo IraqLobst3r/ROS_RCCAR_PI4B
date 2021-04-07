@@ -66,6 +66,7 @@ class H264ToRawSubscriber : public rclcpp::Node {
         nFrames_ = h264_msg->seq;
 
         packet_.size = h264_msg->data.size();
+        RCLCPP_INFO(this->get_logger(), "data size: %u", h264_msg->data.size());
         packet_.data = const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(&h264_msg->data[0]));
 
         // Send packet to decoder

@@ -15,7 +15,7 @@ extern "C" {
 
 class PiCamera : public rclcpp::Node {
   public:
-    PiCamera() : Node("pi_cam") {
+    PiCamera() : Node("pi_cam"), nFrames_(0) {
         publisher_ =
             this->create_publisher<custom_interfaces::msg::H264Image>("pi_cam/h264_image", 10);
 

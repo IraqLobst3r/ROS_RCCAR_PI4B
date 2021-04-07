@@ -97,7 +97,7 @@ class PiCamera : public rclcpp::Node {
             int64 tp0 = cv::getTickCount();
             // Copy to the ROS message and free the packet
             if (publisher_->get_subscription_count() > 0) {
-                h264_msg.data.insert(h264_msg.data.begin(), &packet.data[0],
+                h264_msg.data.insert(h264_msg.data.end(), &packet.data[0],
                                      &packet.data[packet.size]);
                 h264_msg.header.stamp = this->now();
                 publisher_->publish(h264_msg);

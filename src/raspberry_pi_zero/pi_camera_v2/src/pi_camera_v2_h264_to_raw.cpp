@@ -84,6 +84,7 @@ class H264ToRawSubscriber : public rclcpp::Node {
             return;
         }
 
+        RCLCPP_INFO(this->get_logger(), "size: %f x %f", p_frame_->width, p_frame_->height);
         auto image = sensor_msgs::msg::Image();
         image.width = p_frame_->width;
         image.height = p_frame_->height;

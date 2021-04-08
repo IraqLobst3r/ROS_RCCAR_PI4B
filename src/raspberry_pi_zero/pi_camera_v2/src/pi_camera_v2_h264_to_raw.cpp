@@ -9,6 +9,7 @@
 extern "C" {
 #include "libavdevice/avdevice.h"
 #include "libavutil/imgutils.h"
+#include "libswscale/swscale.h"
 }
 
 #include "custom_interfaces/msg/h264_image.hpp"
@@ -93,6 +94,18 @@ class H264ToRawSubscriber : public rclcpp::Node {
         image.encoding = sensor_msgs::image_encodings::BGR8;
         image.header = h264_msg->header;
 
+        // Set / update sws context
+        p_sws_context_ = sws_getCachedContext(
+            p_sws_context_, p_frame_->width, p_frame_->height, AV_PIX_FMT_YUV420P, p_frame_->width,
+            p_frame_->height, AV_PIX_FMT_BGR24, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+
+        // Copy and convert from YUYV420P to BGR24
+        image.data.resize(p_frame_->width * p_frame_->height * 3);
+        int stride = 3 * p_frame_->width;
+        uint8_t* destination = &image.data[0];
+        sws_scale(p_sws_context_, (const uint8_t* const*)p_frame_->data, p_frame_->linesize, 0,
+                  p_frame_->height, &destination, &stride);
+
         publisher_->publish(image);
     }
 
@@ -102,6 +115,7 @@ class H264ToRawSubscriber : public rclcpp::Node {
     AVCodec* p_codec_{nullptr};
     AVCodecContext* p_codec_context_{nullptr};
     AVFrame* p_frame_{nullptr};
+    SwsContext* p_sws_context_{nullptr};
     rclcpp::Subscription<custom_interfaces::msg::H264Image>::SharedPtr subscription_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
 };

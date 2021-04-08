@@ -68,8 +68,8 @@ class PiCamera : public rclcpp::Node {
             h264_msg.header.frame_id = frame_id_;
             h264_msg.seq = nFrames_++;
 
-            if (nFrames_ % 10 == 0) {
-                const int N = 10;
+            if (nFrames_ % 1000 == 0) {
+                const int N = 1000;
                 int64 t1 = cv::getTickCount();
                 std::cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames_)
                           << "    Average FPS: "

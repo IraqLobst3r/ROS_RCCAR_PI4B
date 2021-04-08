@@ -107,12 +107,10 @@ class PiCamera : public rclcpp::Node {
         // Close v4l device
         RCLCPP_INFO(this->get_logger(), "Close v4l2 device");
         avformat_close_input(&format_context_);
-    }
-
-    ~PiCamera() {
-        RCLCPP_INFO(this->get_logger(), "Deconstructor PiCamera");
         avformat_free_context(format_context_);
     }
+
+    ~PiCamera() { RCLCPP_INFO(this->get_logger(), "Deconstructor PiCamera"); }
 
   private:
     int nFrames_;

@@ -53,7 +53,6 @@ class PiCamera : public rclcpp::Node {
         av_dict_set(&format_options, "input_format", "h264", 0);
         av_dict_set(&format_options, "framerate", fps_.c_str(), 0);
         av_dict_set(&format_options, "video_size", size_.c_str(), 0);
-        av_dict_set(&format_options, "pixel_format", "y8", 0);
 
         // Open 4vl device, pass ownership of format_options
         if (avformat_open_input(&format_context_, fd_.c_str(), input_format_, &format_options) <

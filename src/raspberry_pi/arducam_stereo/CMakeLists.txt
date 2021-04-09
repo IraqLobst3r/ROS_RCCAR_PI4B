@@ -18,11 +18,21 @@ endif()
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(custom_interfaces REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(custom_interfaces REQUIRED)
+
+find_package(OpenCV REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
 add_executable(arducam_stereo src/arducam_stereo.cpp)
+target_link_libraries(arducam_stereo ${OpenCV_LIBRARIES})
+ament_target_dependencies(arducam_stereo rclcpp cv_bridge sensor_msgs custom_interfaces)
+
 target_include_directories(arducam_stereo PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)

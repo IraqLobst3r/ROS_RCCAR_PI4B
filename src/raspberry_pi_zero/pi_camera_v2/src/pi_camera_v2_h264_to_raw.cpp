@@ -22,9 +22,15 @@ class H264ToRawSubscriber : public rclcpp::Node {
   public:
     H264ToRawSubscriber()
         : Node("h264_raw_subscriber"), nFrames_(0), consecutive_receive_failures_(0) {
-        publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/pi_cam/raw", 10);
+
+        this->declare_parameter<std::string>("pub_topic", "/pi_cam/raw");
+        this->declare_parameter<std::string>("sub_topic", "/pi_cam/h264_image");
+        this->get_parameter("pub_topic", pub_topic_);
+        this->get_parameter("sub_topic", sub_topic_);
+
+        publisher_ = this->create_publisher<sensor_msgs::msg::Image>(pub_topic_, 10);
         subscription_ = this->create_subscription<custom_interfaces::msg::H264Image>(
-            "/pi_cam/h264_image", 10, std::bind(&H264ToRawSubscriber::h264_callback, this, _1));
+            sub_topic_, 10, std::bind(&H264ToRawSubscriber::h264_callback, this, _1));
 
         av_init_packet(&packet_);
         av_log_set_level(AV_LOG_WARNING);
@@ -109,6 +115,8 @@ class H264ToRawSubscriber : public rclcpp::Node {
 
     int nFrames_;
     int consecutive_receive_failures_;
+    std::string pub_topic_;
+    std::string sub_topic_;
     AVPacket packet_;
     AVCodec* p_codec_{nullptr};
     AVCodecContext* p_codec_context_{nullptr};

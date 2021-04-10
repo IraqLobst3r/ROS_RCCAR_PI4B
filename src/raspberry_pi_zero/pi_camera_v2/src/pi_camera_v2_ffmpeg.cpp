@@ -21,8 +21,10 @@ class PiCamera : public rclcpp::Node {
 
         this->declare_parameter<std::string>("size", "800x600");
         this->declare_parameter<std::string>("fps", "30");
+        this->declare_parameter<std::string>("frame_id", "pi_cam");
         this->get_parameter("size", size_);
         this->get_parameter("fps", fps_);
+        this->get_parameter("frame_id", frame_id_);
 
         RCLCPP_INFO_STREAM(get_logger(), "Parameter input_fd: " << fd_);
         RCLCPP_INFO_STREAM(get_logger(), "Parameter fps: " << fps_);
@@ -118,7 +120,7 @@ class PiCamera : public rclcpp::Node {
     int64 processingTime = 0;
     std::string size_;
     std::string fps_;
-    std::string frame_id_ = "pi_cam";
+    std::string frame_id_;
     std::string fd_ = "/dev/video0";
     AVFormatContext* format_context_{nullptr};
     AVInputFormat* input_format_{nullptr};

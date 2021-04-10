@@ -28,8 +28,8 @@ class PiCamera : public rclcpp::Node {
         RCLCPP_INFO_STREAM(get_logger(), "Parameter size: " << size_);
         RCLCPP_INFO_STREAM(get_logger(), "Parameter frame_id: " << frame_id_);
 
-        publisher_ =
-            this->create_publisher<custom_interfaces::msg::H264Image>(frame_id_ + "h264_image", 10);
+        publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
+            frame_id_ + "/h264_image", 10);
 
         // Initialize libavdevice and register all the input and output devices.
         avdevice_register_all();

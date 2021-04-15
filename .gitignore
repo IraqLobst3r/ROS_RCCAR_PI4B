@@ -3,5 +3,6 @@ build/
 install/
 
 .vscode/**
+.idea/**
 .cache/**
 *.swp

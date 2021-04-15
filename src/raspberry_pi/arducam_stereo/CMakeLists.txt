@@ -22,7 +22,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(image_transport REQUIRED)
 find_package(custom_interfaces REQUIRED)
 
 find_package(OpenCV REQUIRED)
@@ -34,7 +33,7 @@ include_directories(include ${OpenCV_INCLUDE_DIRS})
 
 add_executable(arducam_stereo src/arducam_stereo.cpp)
 target_link_libraries(arducam_stereo ${OpenCV_LIBRARIES} ${ARDUCAM_MIPI})
-ament_target_dependencies(arducam_stereo rclcpp  custom_interfaces sensor_msgs cv_bridge)
+ament_target_dependencies(arducam_stereo rclcpp custom_interfaces sensor_msgs cv_bridge)
 
 target_include_directories(arducam_stereo PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -42,7 +41,7 @@ target_include_directories(arducam_stereo PUBLIC
 
 add_executable(arducam_stereo_cv src/arducam_stereo_cv.cpp)
 target_link_libraries(arducam_stereo_cv ${OpenCV_LIBRARIES} ${ARDUCAM_MIPI})
-ament_target_dependencies(arducam_stereo_cv rclcpp image_transport cv_bridge sensor_msgs)
+ament_target_dependencies(arducam_stereo_cv rclcpp cv_bridge sensor_msgs)
 
 target_include_directories(arducam_stereo_cv PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

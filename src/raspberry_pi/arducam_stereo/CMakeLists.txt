@@ -34,7 +34,7 @@ include_directories(include ${OpenCV_INCLUDE_DIRS})
 
 add_executable(arducam_stereo src/arducam_stereo.cpp)
 target_link_libraries(arducam_stereo ${OpenCV_LIBRARIES} ${ARDUCAM_MIPI})
-ament_target_dependencies(arducam_stereo rclcpp  custom_interfaces)
+ament_target_dependencies(arducam_stereo rclcpp  custom_interfaces sensor_msgs cv_bridge)
 
 target_include_directories(arducam_stereo PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

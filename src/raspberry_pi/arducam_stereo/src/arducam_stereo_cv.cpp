@@ -8,6 +8,8 @@
 #include <opencv2/xphoto/white_balance.hpp>
 #include <rclcpp/executors.hpp>
 #include <rclcpp/node.hpp>
+#include <rclcpp/publisher.hpp>
+#include <sensor_msgs/msg/detail/image__struct.hpp>
 #include <stdexcept>
 #include <stdio.h>
 #include <string.h>
@@ -37,7 +39,6 @@ cv::Mat* get_image(CAMERA_INSTANCE camera_instance, int width, int height) {
     width = VCOS_ALIGN_UP(width, 32);
     height = VCOS_ALIGN_UP(height, 16);
     cv::Mat* image = new cv::Mat(cv::Size(width, (int)(height * 1.5)), CV_8UC1, buffer->data);
-    cv::flip(*image, *image, 1);
     cv::cvtColor(*image, *image, cv::COLOR_YUV2BGR_I420);
     arducam_release_buffer(buffer);
     return image;
@@ -49,9 +50,11 @@ int main(int argc, char* argv[]) {
     image_transport::Publisher _pub_image_right;
 
     rclcpp::Node::SharedPtr arducam_node = rclcpp::Node::make_shared("arducam");
-    image_transport::ImageTransport it(arducam_node);
-    _pub_image_left = it.advertise("image_left", 1);
-    _pub_image_right = it.advertise("image_right", 1);
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub_image =
+        arducam_node->create_publisher<sensor_msgs::msg::Image>("arducam", 10);
+    /* image_transport::ImageTransport it(arducam_node); */
+    /* _pub_image_left = it.advertise("image_left", 1); */
+    /* _pub_image_right = it.advertise("image_right", 1); */
 
     int _width;
     int _height;
@@ -76,15 +79,15 @@ int main(int argc, char* argv[]) {
     // mode: 10, 5184x1944 */
     // mode: 11, 6528x1848 */
     // mode: 12, 6528x2464 */
-    arducam_node->declare_parameter<int>("width", 2560);
-    arducam_node->declare_parameter<int>("height", 720);
+    arducam_node->declare_parameter<int>("width", 6528);
+    arducam_node->declare_parameter<int>("height", 2464);
     arducam_node->declare_parameter<int>("scale", 2);
     arducam_node->declare_parameter<bool>("auto_exposure", true);
     arducam_node->declare_parameter<int>("exposure_value", 5);
     arducam_node->declare_parameter<bool>("auto_white_balance", true);
     arducam_node->declare_parameter<bool>("auto_wb_compensation", true);
     arducam_node->declare_parameter<int>("red_gain", 10);
-    arducam_node->declare_parameter<int>("blue_gain", 50);
+    arducam_node->declare_parameter<int>("blue_gain", 10);
 
     arducam_node->get_parameter("width", _width);
     arducam_node->get_parameter("height", _height);
@@ -132,8 +135,8 @@ int main(int argc, char* argv[]) {
     }
 
     while (rclcpp::ok()) {
-        if (nFrames_ % 100 == 0) {
-            const int N = 100;
+        if (nFrames_ % 10 == 0) {
+            const int N = 10;
             int64 t1 = cv::getTickCount();
             std::cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames_)
                       << "    Average FPS: "
@@ -155,31 +158,31 @@ int main(int argc, char* argv[]) {
             continue;
         int64 tp0 = cv::getTickCount();
 
-        cv::Mat image_clone = image->clone();
-        cv::Mat image_in;
-        resize(image_clone, image_in,
-               cv::Size(image_clone.cols / _scale, image_clone.rows / _scale));
+        /* cv::Mat image_clone = image->clone(); */
+        /* cv::Mat image_in; */
+        /* resize(image_clone, image_in, */
+        /*        cv::Size(image_clone.cols / _scale, image_clone.rows / _scale)); */
 
-        cv::Mat image_left = image_in(cv::Rect(0, 0, image_in.cols / 2, image_in.rows));
-        cv::Mat image_right =
-            image_in(cv::Rect(image_in.cols / 2, 0, image_in.cols / 2, image_in.rows));
+        /* cv::Mat image_left = image_in(cv::Rect(0, 0, image_in.cols / 2, image_in.rows)); */
+        /* cv::Mat image_right = */
+        /*     image_in(cv::Rect(image_in.cols / 2, 0, image_in.cols / 2, image_in.rows)); */
 
         nFrames_ = nFrames_ + 1;
-        sensor_msgs::msg::Image::SharedPtr image_left_out =
-            cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", image_left).toImageMsg();
-        sensor_msgs::msg::Image::SharedPtr image_right_out =
-            cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", image_right).toImageMsg();
+        sensor_msgs::msg::Image::SharedPtr image_out =
+            cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", *image).toImageMsg();
+        /* sensor_msgs::msg::Image::SharedPtr image_right_out = */
+        /*     cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", image_right).toImageMsg(); */
 
-        image_left_out->header.frame_id = "cam_left";
-        image_left_out->header.stamp = arducam_node->now();
+        image_out->header.frame_id = "arducam";
+        image_out->header.stamp = arducam_node->now();
 
-        image_right_out->header.frame_id = "cam_right";
-        image_right_out->header.stamp = arducam_node->now();
+        /* image_right_out->header.frame_id = "cam_right"; */
+        /* image_right_out->header.stamp = arducam_node->now(); */
 
-        if (_pub_image_left.getNumSubscribers() > 0)
-            _pub_image_left.publish(image_left_out);
-        if (_pub_image_right.getNumSubscribers() > 0)
-            _pub_image_right.publish(image_right_out);
+        if (_pub_image->get_subscription_count() > 0)
+            _pub_image->publish(*image_out);
+        /* if (_pub_image_right.getNumSubscribers() > 0) */
+        /*     _pub_image_right.publish(image_right_out); */
 
         delete image;
 

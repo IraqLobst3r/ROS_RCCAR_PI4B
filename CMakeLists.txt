@@ -38,8 +38,29 @@ function(colcon_add_subdirectories)
     endforeach()
 endfunction()
 
-colcon_add_subdirectories(
+
+if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "^(arm|ARM)v7l$")
+    message(STATUS ">>> Raspberry Pi")
+    colcon_add_subdirectories(
         BUILD_BASE "${PROJECT_SOURCE_DIR}/build"
         BASE_PATHS "${PROJECT_SOURCE_DIR}/src/"
-        --packages-skip arducam_stereo
-)
+    )
+endif()
+
+if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "^(arm|ARM)v6l$")
+    message(STATUS ">>> Raspberry Pi Zero")
+    colcon_add_subdirectories(
+            BUILD_BASE "${PROJECT_SOURCE_DIR}/build"
+            BASE_PATHS "${PROJECT_SOURCE_DIR}/src/"
+            --packages-skip arducam_stereo rplidar_ros
+    )
+endif()
+
+if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "^(x86_|x86-|AMD|amd|x)64$")
+    message(STATUS ">>> Linux")
+    colcon_add_subdirectories(
+        BUILD_BASE "${PROJECT_SOURCE_DIR}/build"
+        BASE_PATHS "${PROJECT_SOURCE_DIR}/src/"
+        --packages-skip arducam_stereo rplidar_ros
+    )
+endif()

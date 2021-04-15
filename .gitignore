@@ -1,6 +1,7 @@
 log/
 build/
 install/
+cmake-build*/**
 
 compile_commands.json
 .vscode/**

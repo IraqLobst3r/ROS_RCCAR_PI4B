@@ -41,4 +41,5 @@ endfunction()
 colcon_add_subdirectories(
         BUILD_BASE "${PROJECT_SOURCE_DIR}/build"
         BASE_PATHS "${PROJECT_SOURCE_DIR}/src/"
+        --packages-skip arducam_stereo
 )

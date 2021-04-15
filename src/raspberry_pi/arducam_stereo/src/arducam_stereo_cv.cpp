@@ -20,7 +20,6 @@
 #include "arducam_mipicamera.h"
 
 #include "cv_bridge/cv_bridge.h"
-#include "image_transport/image_transport.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
@@ -52,9 +51,6 @@ int main(int argc, char* argv[]) {
     rclcpp::Node::SharedPtr arducam_node = rclcpp::Node::make_shared("arducam");
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub_image =
         arducam_node->create_publisher<sensor_msgs::msg::Image>("arducam", 10);
-    /* image_transport::ImageTransport it(arducam_node); */
-    /* _pub_image_left = it.advertise("image_left", 1); */
-    /* _pub_image_right = it.advertise("image_right", 1); */
 
     int _width;
     int _height;

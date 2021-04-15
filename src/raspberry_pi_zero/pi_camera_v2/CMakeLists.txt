@@ -40,22 +40,22 @@ include_directories(include ${OpenCV_INCLUDE_DIRS})
 # find_package(<dependency> REQUIRED)
 
 # pi camera opencv api
-add_executable(pi_camera_v2_cv src/pi_camera_v2_cv.cpp)
-target_link_libraries(pi_camera_v2_cv ${OpenCV_LIBRARIES})
-ament_target_dependencies(pi_camera_v2_cv rclcpp std_msgs cv_bridge sensor_msgs custom_interfaces)
+# add_executable(pi_camera_v2_cv src/pi_camera_v2_cv.cpp)
+# target_link_libraries(pi_camera_v2_cv ${OpenCV_LIBRARIES})
+# ament_target_dependencies(pi_camera_v2_cv rclcpp std_msgs cv_bridge sensor_msgs custom_interfaces)
 
-target_include_directories(pi_camera_v2_cv PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
+# target_include_directories(pi_camera_v2_cv PUBLIC
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#   $<INSTALL_INTERFACE:include>)
 
 # pi camera v4l2 api
-add_executable(pi_camera_v2_v4l2 src/pi_camera_v2_v4l2.cpp)
-target_link_libraries(pi_camera_v2_v4l2 ${OpenCV_LIBRARIES})
-ament_target_dependencies(pi_camera_v2_v4l2 rclcpp std_msgs cv_bridge sensor_msgs custom_interfaces)
+# add_executable(pi_camera_v2_v4l2 src/pi_camera_v2_v4l2.cpp)
+# target_link_libraries(pi_camera_v2_v4l2 ${OpenCV_LIBRARIES})
+# ament_target_dependencies(pi_camera_v2_v4l2 rclcpp std_msgs cv_bridge sensor_msgs custom_interfaces)
 
-target_include_directories(pi_camera_v2_v4l2 PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
+# target_include_directories(pi_camera_v2_v4l2 PUBLIC
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#   $<INSTALL_INTERFACE:include>)
 
 # pi camera ffmpeg api
 add_executable(pi_camera_v2_ffmpeg src/pi_camera_v2_ffmpeg.cpp)
@@ -75,13 +75,13 @@ target_include_directories(pi_camera_v2_h264_to_raw PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-install(TARGETS pi_camera_v2_cv pi_camera_v2_v4l2 pi_camera_v2_ffmpeg pi_camera_v2_h264_to_raw
+install(TARGETS pi_camera_v2_ffmpeg pi_camera_v2_h264_to_raw
   DESTINATION lib/${PROJECT_NAME})
 
-install(
-  DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}
-)
+# install(
+#   DIRECTORY launch
+#   DESTINATION share/${PROJECT_NAME}
+# )
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

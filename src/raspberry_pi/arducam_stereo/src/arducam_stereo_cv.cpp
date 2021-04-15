@@ -45,9 +45,6 @@ cv::Mat* get_image(CAMERA_INSTANCE camera_instance, int width, int height) {
 
 int main(int argc, char* argv[]) {
     rclcpp::init(argc, argv);
-    image_transport::Publisher _pub_image_left;
-    image_transport::Publisher _pub_image_right;
-
     rclcpp::Node::SharedPtr arducam_node = rclcpp::Node::make_shared("arducam");
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub_image =
         arducam_node->create_publisher<sensor_msgs::msg::Image>("arducam", 10);

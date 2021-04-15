@@ -2,6 +2,7 @@ log/
 build/
 install/
 
+compile_commands.json
 .vscode/**
 .idea/**
 .cache/**

@@ -27,14 +27,23 @@ find_package(custom_interfaces REQUIRED)
 
 find_package(OpenCV REQUIRED)
 find_library(ARDUCAM_MIPI  arducam_mipicamera PATHS /usr/lib)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
+    libavdevice
+    libavformat
+    libavcodec
+    libavutil
+    libswscale
+)
+
 include_directories(include ${OpenCV_INCLUDE_DIRS})
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
 add_executable(arducam_stereo src/arducam_stereo.cpp)
-target_link_libraries(arducam_stereo ${OpenCV_LIBRARIES} ${ARDUCAM_MIPI})
-ament_target_dependencies(arducam_stereo rclcpp custom_interfaces sensor_msgs cv_bridge)
+target_link_libraries(arducam_stereo ${OpenCV_LIBRARIES} ${ARDUCAM_MIPI} PkgConfig::LIBAV)
+ament_target_dependencies(arducam_stereo rclcpp custom_interfaces sensor_msgs)
 
 target_include_directories(arducam_stereo PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

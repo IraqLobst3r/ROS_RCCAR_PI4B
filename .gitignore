@@ -4,6 +4,7 @@ install/
 cmake-build*/**
 
 compile_commands.json
+tags
 .vscode/**
 .idea/**
 .cache/**

@@ -61,7 +61,7 @@ class ArducamStereoNode : public rclcpp::Node {
         this->get_parameter("red_gain", _red_gain);
         this->get_parameter("blue_gain", _blue_gain);
 
-        _width_aligned = VCOS_ALIGN_UP(_width, 32);
+        /* _width_aligned = VCOS_ALIGN_UP(_width, 32); */
         _height_aligned = VCOS_ALIGN_UP(_height, 16);
 
         publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
@@ -260,14 +260,20 @@ class ArducamStereoNode : public rclcpp::Node {
             count_--;
             lk.unlock();
 
-            RCLCPP_INFO(this->get_logger(), "Start fill image");
+            custom_interfaces::msg::H264Image h264_msg;
+            h264_msg.header.frame_id = "stereo";
+            h264_msg.seq = _seq++;
+
+            /* RCLCPP_INFO(this->get_logger(), "Start fill image"); */
             res = av_image_fill_arrays(
                 p_frame_->data, p_frame_->linesize,
                 const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(buf->data)),
-                AV_PIX_FMT_YUV420P, _width_aligned, _height_aligned, 0);
+                AV_PIX_FMT_YUV420P, p_frame_->width, _height_aligned, 32);
             if (res < 0) {
                 RCLCPP_INFO(this->get_logger(), "Could not fill image");
             }
+            /* RCLCPP_INFO(this->get_logger(), "Linesize: %u %u %u %u", p_frame_->linesize[0], */
+            /*             p_frame_->linesize[1], p_frame_->linesize[2], p_frame_->linesize[3]); */
 
             // Send packet to decoder
             if (avcodec_send_frame(p_codec_context_, p_frame_) < 0) {
@@ -281,6 +287,14 @@ class ArducamStereoNode : public rclcpp::Node {
                     RCLCPP_INFO(this->get_logger(), "Could not receive %d frames",
                                 consecutive_receive_failures_);
                 }
+            }
+
+            h264_msg.data.insert(h264_msg.data.begin(), &packet_.data[0],
+                                 &packet_.data[packet_.size]);
+            h264_msg.header.stamp = this->now();
+
+            if (publisher_->get_subscription_count() > 0) {
+                publisher_->publish(h264_msg);
             }
 
             arducam_release_buffer(buf);
@@ -306,6 +320,7 @@ class ArducamStereoNode : public rclcpp::Node {
     int _height;
     int _width_aligned;
     int _height_aligned;
+    int _seq = 0;
     // belichtungszeit auto empfohlen
     bool _auto_exposure;
     // manuelle belichtungszeit => value/1000 (100us)

@@ -79,10 +79,10 @@ target_include_directories(pi_camera_v2_h264_to_raw PUBLIC
 install(TARGETS pi_camera_v2_ffmpeg pi_camera_v2_h264_to_raw
   DESTINATION lib/${PROJECT_NAME})
 
-# install(
-#   DIRECTORY launch
-#   DESTINATION share/${PROJECT_NAME}
-# )
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -149,8 +149,10 @@ class ArducamStereoNode : public rclcpp::Node {
                         "Failed to set hflip, the camera may not support this control.");
         }
 
-        av_init_packet(&packet_);
+        avdevice_register_all();
         av_log_set_level(AV_LOG_INFO);
+
+        av_init_packet(&packet_);
 
         p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264);
         /* p_codec_ = avcodec_find_encoder_by_name("h264_omx"); */

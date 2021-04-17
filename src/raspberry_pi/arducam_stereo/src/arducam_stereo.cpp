@@ -262,7 +262,7 @@ class ArducamStereoNode : public rclcpp::Node {
 
             custom_interfaces::msg::H264Image h264_msg;
             h264_msg.header.frame_id = "stereo";
-            h264_msg.seq = _seq++;
+            h264_msg.seq = _seq;
 
             /* RCLCPP_INFO(this->get_logger(), "Start fill image"); */
             res = av_image_fill_arrays(
@@ -272,6 +272,7 @@ class ArducamStereoNode : public rclcpp::Node {
             if (res < 0) {
                 RCLCPP_INFO(this->get_logger(), "Could not fill image");
             }
+            p_frame_->pts = _seq;
             /* RCLCPP_INFO(this->get_logger(), "Linesize: %u %u %u %u", p_frame_->linesize[0], */
             /*             p_frame_->linesize[1], p_frame_->linesize[2], p_frame_->linesize[3]); */
 
@@ -297,6 +298,7 @@ class ArducamStereoNode : public rclcpp::Node {
                 publisher_->publish(h264_msg);
             }
 
+            _seq++;
             arducam_release_buffer(buf);
         }
 

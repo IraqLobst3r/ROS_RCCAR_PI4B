@@ -24,8 +24,8 @@ def generate_launch_description():
             output="screen",
             emulate_tty=True,
             parameters=[
-                {"pub_topic": "/arducam/raw",
-                    "sub_topic": "/arducam/h264_image",
+                {"pub_topic": "/arducam_stereo/raw",
+                    "sub_topic": "/arducam_stereo/h264_image",
                     }
             ]
         )

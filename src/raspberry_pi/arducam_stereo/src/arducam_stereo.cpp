@@ -152,7 +152,8 @@ class ArducamStereoNode : public rclcpp::Node {
         av_init_packet(&packet_);
         av_log_set_level(AV_LOG_WARNING);
 
-        p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264);
+        /* p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264); */
+        p_codec_ = avcodec_find_encoder_by_name("h264_omx");
         if (!p_codec_) {
             RCLCPP_ERROR(this->get_logger(), "Could not find ffmpeg h264 codec");
             throw std::runtime_error("Could not find ffmpeg h264 codec");
@@ -171,7 +172,7 @@ class ArducamStereoNode : public rclcpp::Node {
         p_codec_context_->height = _height;
 
         if (p_codec_->id == AV_CODEC_ID_H264)
-            av_opt_set(p_codec_context_->priv_data, "preset", "slow", 0);
+            av_opt_set(p_codec_context_->priv_data, "preset", "veryfast", 0);
 
         if (avcodec_open2(p_codec_context_, p_codec_, nullptr) < 0) {
             RCLCPP_ERROR(this->get_logger(), "Could not open ffmpeg h264 codec");
@@ -204,37 +205,33 @@ class ArducamStereoNode : public rclcpp::Node {
                     continue;
 
                 int64 tp0 = cv::getTickCount();
-                /* RCLCPP_INFO(this->get_logger(), "Cam thread Wait"); */
                 std::unique_lock<std::mutex> lk(mutex_);
-                /* con_v.wait(lk); */
-                /* RCLCPP_INFO(this->get_logger(), "Cam thread continue"); */
 
                 buffer_queue.push(buffer);
                 count_++;
-
-                lk.unlock();
-                /* RCLCPP_INFO(this->get_logger(), "Cam thread notify"); */
-                con_v.notify_all();
-
-                processingTime += cv::getTickCount() - tp0;
 
                 nFrames_++;
                 if ((nFrames_ >= 10) && nFrames_ % 10 == 0) {
                     const int N = 10;
                     int64 t1 = cv::getTickCount();
                     std::cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames_)
-                              << "    Average FPS: "
+                              << "  Average FPS: "
                               << cv::format("%9.1f", (double)cv::getTickFrequency() * N / (t1 - t0))
-                              << "    Average time per frame: "
+                              << "  Average time per frame: "
                               << cv::format("%9.2f ms", (double)(t1 - t0) * 1000.0f /
                                                             (N * cv::getTickFrequency()))
-                              << "    Average processing time: "
+                              << "  Average processing time: "
                               << cv::format("%9.2f ms", (double)(processingTime)*1000.0f /
                                                             (N * cv::getTickFrequency()))
-                              << std::endl;
+                              << "  Buffer Size: " << count_ << std::endl;
                     t0 = t1;
                     processingTime = 0;
                 }
+
+                lk.unlock();
+                con_v.notify_all();
+
+                processingTime += cv::getTickCount() - tp0;
             }
 
             // close camera instance
@@ -252,9 +249,7 @@ class ArducamStereoNode : public rclcpp::Node {
         while (rclcpp::ok() && !stop_signal_) {
 
             std::unique_lock<std::mutex> lk(mutex_);
-            /* RCLCPP_INFO(this->get_logger(), "Publisher thread Wait"); */
             con_v.wait(lk, [this] { return count_ > 0; });
-            /* RCLCPP_INFO(this->get_logger(), "Publisher thread continue"); */
             buf = buffer_queue.front();
             buffer_queue.pop();
             count_--;
@@ -264,7 +259,6 @@ class ArducamStereoNode : public rclcpp::Node {
             h264_msg.header.frame_id = "stereo";
             h264_msg.seq = _seq;
 
-            /* RCLCPP_INFO(this->get_logger(), "Start fill image"); */
             res = av_image_fill_arrays(
                 p_frame_->data, p_frame_->linesize,
                 const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(buf->data)),
@@ -273,8 +267,6 @@ class ArducamStereoNode : public rclcpp::Node {
                 RCLCPP_INFO(this->get_logger(), "Could not fill image");
             }
             p_frame_->pts = _seq;
-            /* RCLCPP_INFO(this->get_logger(), "Linesize: %u %u %u %u", p_frame_->linesize[0], */
-            /*             p_frame_->linesize[1], p_frame_->linesize[2], p_frame_->linesize[3]); */
 
             // Send packet to decoder
             if (avcodec_send_frame(p_codec_context_, p_frame_) < 0) {
@@ -288,14 +280,15 @@ class ArducamStereoNode : public rclcpp::Node {
                     RCLCPP_INFO(this->get_logger(), "Could not receive %d frames",
                                 consecutive_receive_failures_);
                 }
-            }
+            } else {
 
-            h264_msg.data.insert(h264_msg.data.begin(), &packet_.data[0],
-                                 &packet_.data[packet_.size]);
-            h264_msg.header.stamp = this->now();
+                h264_msg.data.insert(h264_msg.data.begin(), &packet_.data[0],
+                                     &packet_.data[packet_.size]);
+                h264_msg.header.stamp = this->now();
 
-            if (publisher_->get_subscription_count() > 0) {
-                publisher_->publish(h264_msg);
+                if (publisher_->get_subscription_count() > 0) {
+                    publisher_->publish(h264_msg);
+                }
             }
 
             _seq++;

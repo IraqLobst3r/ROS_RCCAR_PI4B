@@ -13,7 +13,7 @@ def generate_launch_description():
             parameters=[
                 {"size": "1920x1080",
                     "fps": "30",
-                    "frame_id" : "arducam"
+                    "frame_id" : "arducam_stereo"
                     }
             ]
         )

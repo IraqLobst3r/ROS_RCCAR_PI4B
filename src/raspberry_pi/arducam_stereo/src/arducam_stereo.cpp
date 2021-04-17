@@ -150,10 +150,10 @@ class ArducamStereoNode : public rclcpp::Node {
         }
 
         av_init_packet(&packet_);
-        av_log_set_level(AV_LOG_WARNING);
+        av_log_set_level(AV_LOG_INFO);
 
-        /* p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264); */
-        p_codec_ = avcodec_find_encoder_by_name("h264_omx");
+        p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264);
+        /* p_codec_ = avcodec_find_encoder_by_name("h264_omx"); */
         if (!p_codec_) {
             RCLCPP_ERROR(this->get_logger(), "Could not find ffmpeg h264 codec");
             throw std::runtime_error("Could not find ffmpeg h264 codec");
@@ -170,9 +170,13 @@ class ArducamStereoNode : public rclcpp::Node {
         p_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
         p_codec_context_->width = _width;
         p_codec_context_->height = _height;
+        /* p_codec_context_->level = 32; */
+        /* p_codec_context_->profile = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_STEREO_HIGH */
 
-        if (p_codec_->id == AV_CODEC_ID_H264)
-            av_opt_set(p_codec_context_->priv_data, "preset", "veryfast", 0);
+        if (p_codec_->id == AV_CODEC_ID_H264) {
+            /* av_opt_set(p_codec_context_->priv_data, "tune", "zerolatency", 0); */
+            av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0);
+        }
 
         if (avcodec_open2(p_codec_context_, p_codec_, nullptr) < 0) {
             RCLCPP_ERROR(this->get_logger(), "Could not open ffmpeg h264 codec");

@@ -32,8 +32,9 @@ class PiCamera : public rclcpp::Node {
             frame_id_ + "/h264_image", 10);
 
         // Initialize libavdevice and register all the input and output devices.
+        av_register_all();
         avdevice_register_all();
-        av_log_set_level(AV_LOG_WARNING);
+        av_log_set_level(AV_LOG_INFO);
 
         // Device drivers appear as formats in ffmpeg
         // Find the v4l driver

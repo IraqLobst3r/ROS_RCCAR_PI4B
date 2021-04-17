@@ -43,6 +43,14 @@ class ArducamStereoNode : public rclcpp::Node {
   public:
     ArducamStereoNode() : Node("arducam_stereo_node") {
 
+        // Available formats: */
+        // mode: 7, 1600x600 */
+        // mode: 8, 2560x720 */
+        // mode: 9, 3840x1080 */
+        // mode: 10, 5184x1944 */
+        // mode: 11, 6528x1848 */
+        // mode: 12, 6528x2464 */
+
         this->declare_parameter<int>("width", 3840);
         this->declare_parameter<int>("height", 1080);
         this->declare_parameter<bool>("auto_exposure", true);
@@ -149,6 +157,7 @@ class ArducamStereoNode : public rclcpp::Node {
                         "Failed to set hflip, the camera may not support this control.");
         }
 
+        av_register_all();
         avdevice_register_all();
         av_log_set_level(AV_LOG_INFO);
 
@@ -173,7 +182,7 @@ class ArducamStereoNode : public rclcpp::Node {
         p_codec_context_->width = _width;
         p_codec_context_->height = _height;
         /* p_codec_context_->level = 32; */
-        /* p_codec_context_->profile = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_STEREO_HIGH */
+        p_codec_context_->profile = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_STEREO_HIGH
 
         if (p_codec_->id == AV_CODEC_ID_H264) {
             /* av_opt_set(p_codec_context_->priv_data, "tune", "zerolatency", 0); */

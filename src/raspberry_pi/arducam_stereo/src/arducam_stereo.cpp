@@ -51,8 +51,8 @@ class ArducamStereoNode : public rclcpp::Node {
         // mode: 11, 6528x1848 */
         // mode: 12, 6528x2464 */
 
-        this->declare_parameter<int>("width", 3840);
-        this->declare_parameter<int>("height", 1080);
+        this->declare_parameter<int>("width", 1600);
+        this->declare_parameter<int>("height", 600);
         this->declare_parameter<bool>("auto_exposure", true);
         this->declare_parameter<int>("exposure_value", 5);
         this->declare_parameter<bool>("auto_white_balance", true);

@@ -163,8 +163,8 @@ class ArducamStereoNode : public rclcpp::Node {
 
         av_init_packet(&packet_);
 
-        p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264);
-        /* p_codec_ = avcodec_find_encoder_by_name("h264_omx"); */
+        /* p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264); */
+        p_codec_ = avcodec_find_encoder_by_name("h264_omx");
         if (!p_codec_) {
             RCLCPP_ERROR(this->get_logger(), "Could not find ffmpeg h264 codec");
             throw std::runtime_error("Could not find ffmpeg h264 codec");

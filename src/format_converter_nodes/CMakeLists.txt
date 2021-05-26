@@ -36,7 +36,7 @@ pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
 
 # h264 to raw image subscriber
 add_executable(h264_to_raw src/h264_to_raw.cpp)
-target_link_libraries(264_to_raw ${OpenCV_LIBRARIES} PkgConfig::LIBAV)
+target_link_libraries(h264_to_raw ${OpenCV_LIBRARIES} PkgConfig::LIBAV)
 ament_target_dependencies(h264_to_raw rclcpp cv_bridge sensor_msgs custom_interfaces)
 
 target_include_directories(h264_to_raw PUBLIC

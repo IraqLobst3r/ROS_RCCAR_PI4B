@@ -168,7 +168,7 @@ class ArducamStereoNode : public rclcpp::Node {
             throw std::runtime_error("Could not open ffmpeg h264 codec");
         }
 
-        // configer encoder 
+        // configer encoder
         p_codec_context_->time_base = (AVRational){1, 1};
         p_codec_context_->framerate = (AVRational){1, 1};
         p_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
@@ -180,9 +180,9 @@ class ArducamStereoNode : public rclcpp::Node {
         if (p_codec_->id == AV_CODEC_ID_H264) {
             // set config best for application
             /* av_opt_set(p_codec_context_->priv_data, "tune", "zerolatency", 0); */
-            // set config based on encoding time 
+            // set config based on encoding time
             /* av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0); */
-            // set the lossrate (0 - 51) with 0 = lossless 
+            // set the lossrate (0 - 51) with 0 = lossless
             av_opt_set(p_codec_context_->priv_data, "crf", "17", 0);
         }
 
@@ -272,7 +272,7 @@ class ArducamStereoNode : public rclcpp::Node {
 
             // Get encoded frame
             if (avcodec_receive_packet(p_codec_context_, &packet_) < 0) {
-                    RCLCPP_INFO(this->get_logger(), "Could not receive frame");
+                RCLCPP_INFO(this->get_logger(), "Could not receive frame");
             } else {
 
                 h264_msg.data.insert(h264_msg.data.begin(), &packet_.data[0],
@@ -325,7 +325,6 @@ class ArducamStereoNode : public rclcpp::Node {
 
     CAMERA_INSTANCE camera_instance;
     rclcpp::Publisher<custom_interfaces::msg::H264Image>::SharedPtr publisher_;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr dummy_;
 };
 
 int main(int argc, char* argv[]) {

@@ -33,14 +33,9 @@ pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
     libswscale
 )
 
-include_directories(include ${OpenCV_INCLUDE_DIRS})
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
-
 add_executable(arducam_stereo src/arducam_stereo.cpp)
-target_link_libraries(arducam_stereo ${OpenCV_LIBRARIES} ${ARDUCAM_MIPI} PkgConfig::LIBAV)
-ament_target_dependencies(arducam_stereo rclcpp custom_interfaces sensor_msgs)
+target_link_libraries(arducam_stereo ${ARDUCAM_MIPI} PkgConfig::LIBAV)
+ament_target_dependencies(arducam_stereo rclcpp custom_interfaces)
 
 target_include_directories(arducam_stereo PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -7,7 +7,6 @@ extern "C" {
 #include "libavdevice/avdevice.h"
 #include "libavutil/imgutils.h"
 }
-#include <opencv2/opencv.hpp>
 
 #include "custom_interfaces/msg/h264_image.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -19,6 +18,7 @@ class PiCamera : public rclcpp::Node {
         this->declare_parameter<std::string>("size", "800x600");
         this->declare_parameter<std::string>("fps", "30");
         this->declare_parameter<std::string>("frame_id", "pi_cam");
+
         this->get_parameter("size", size_);
         this->get_parameter("fps", fps_);
         this->get_parameter("frame_id", frame_id_);
@@ -71,23 +71,6 @@ class PiCamera : public rclcpp::Node {
             h264_msg.header.frame_id = frame_id_;
             h264_msg.seq = nFrames_++;
 
-            if (nFrames_ % 1000 == 0) {
-                const int N = 1000;
-                int64 t1 = cv::getTickCount();
-                std::cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames_)
-                          << "    Average FPS: "
-                          << cv::format("%9.1f", (double)cv::getTickFrequency() * N / (t1 - t0))
-                          << "    Average time per frame: "
-                          << cv::format("%9.2f ms",
-                                        (double)(t1 - t0) * 1000.0f / (N * cv::getTickFrequency()))
-                          << "    Average processing time: "
-                          << cv::format("%9.2f ms", (double)(processingTime)*1000.0f /
-                                                        (N * cv::getTickFrequency()))
-                          << std::endl;
-                t0 = t1;
-                processingTime = 0;
-            }
-
             // Block until a frame is ready
             AVPacket packet;
             if (av_read_frame(format_context_, &packet) < 0) {
@@ -95,7 +78,6 @@ class PiCamera : public rclcpp::Node {
                 break;
             }
 
-            int64 tp0 = cv::getTickCount();
             // Copy to the ROS message and free the packet
             if (publisher_->get_subscription_count() > 0) {
                 h264_msg.data.insert(h264_msg.data.begin(), &packet.data[0],
@@ -104,8 +86,6 @@ class PiCamera : public rclcpp::Node {
                 publisher_->publish(h264_msg);
             }
             av_packet_unref(&packet);
-
-            processingTime += cv::getTickCount() - tp0;
         }
         // Close v4l device
         RCLCPP_INFO(this->get_logger(), "Close v4l2 device");
@@ -117,8 +97,6 @@ class PiCamera : public rclcpp::Node {
 
   private:
     int nFrames_;
-    int64 t0 = 0;
-    int64 processingTime = 0;
     std::string size_;
     std::string fps_;
     std::string frame_id_;
@@ -129,7 +107,6 @@ class PiCamera : public rclcpp::Node {
 };
 
 int main(int argc, char** argv) {
-    /* setvbuf(stdout, nullptr, _IONBF, BUFSIZ); */
     rclcpp::init(argc, argv);
     std::shared_ptr<PiCamera> cam_node = std::make_shared<PiCamera>();
     cam_node->start_stream();

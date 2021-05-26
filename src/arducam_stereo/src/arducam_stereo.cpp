@@ -3,13 +3,7 @@
 #include <linux/v4l2-controls.h>
 #include <memory>
 #include <mutex>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/opencv.hpp>
-#include <opencv2/xphoto/white_balance.hpp>
 #include <queue>
-#include <sensor_msgs/msg/detail/image__struct.hpp>
 #include <stdexcept>
 #include <stdio.h>
 #include <string.h>
@@ -28,8 +22,6 @@ extern "C" {
 
 #include "custom_interfaces/msg/h264_image.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
-#include "std_msgs/msg/string.hpp"
 
 #define VCOS_ALIGN_DOWN(p, n) (((ptrdiff_t)(p)) & ~((n)-1))
 #define VCOS_ALIGN_UP(p, n) VCOS_ALIGN_DOWN((ptrdiff_t)(p) + (n)-1, (n))
@@ -51,8 +43,8 @@ class ArducamStereoNode : public rclcpp::Node {
         // mode: 11, 6528x1848 */
         // mode: 12, 6528x2464 */
 
-        this->declare_parameter<int>("width", 1600);
-        this->declare_parameter<int>("height", 600);
+        this->declare_parameter<int>("width", 6528);
+        this->declare_parameter<int>("height", 2464);
         this->declare_parameter<bool>("auto_exposure", true);
         this->declare_parameter<int>("exposure_value", 5);
         this->declare_parameter<bool>("auto_white_balance", true);
@@ -69,12 +61,11 @@ class ArducamStereoNode : public rclcpp::Node {
         this->get_parameter("red_gain", _red_gain);
         this->get_parameter("blue_gain", _blue_gain);
 
-        /* _width_aligned = VCOS_ALIGN_UP(_width, 32); */
-        _height_aligned = VCOS_ALIGN_UP(_height, 16);
+        _width_aligned = VCOS_ALIGN_UP(_width, 16);
+        /* _height_aligned = VCOS_ALIGN_UP(_height, 16); */
 
         publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
             "arducam_stereo/h264_image", 10);
-        dummy_ = this->create_publisher<sensor_msgs::msg::Image>("arducam_raw", 10);
 
         int res;
         RCLCPP_INFO(this->get_logger(), "Opening camera...");
@@ -163,8 +154,9 @@ class ArducamStereoNode : public rclcpp::Node {
 
         av_init_packet(&packet_);
 
-        /* p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264); */
-        p_codec_ = avcodec_find_encoder_by_name("h264_omx");
+        p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264);
+        // hardware encoder for 264 format
+        /* p_codec_ = avcodec_find_encoder_by_name("h264_omx"); */
         if (!p_codec_) {
             RCLCPP_ERROR(this->get_logger(), "Could not find ffmpeg h264 codec");
             throw std::runtime_error("Could not find ffmpeg h264 codec");
@@ -176,8 +168,9 @@ class ArducamStereoNode : public rclcpp::Node {
             throw std::runtime_error("Could not open ffmpeg h264 codec");
         }
 
-        p_codec_context_->time_base = (AVRational){1, 4};
-        p_codec_context_->framerate = (AVRational){4, 1};
+        // configer encoder 
+        p_codec_context_->time_base = (AVRational){1, 1};
+        p_codec_context_->framerate = (AVRational){1, 1};
         p_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
         p_codec_context_->width = _width;
         p_codec_context_->height = _height;
@@ -185,8 +178,12 @@ class ArducamStereoNode : public rclcpp::Node {
         p_codec_context_->profile = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_STEREO_HIGH
 
         if (p_codec_->id == AV_CODEC_ID_H264) {
+            // set config best for application
             /* av_opt_set(p_codec_context_->priv_data, "tune", "zerolatency", 0); */
-            av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0);
+            // set config based on encoding time 
+            /* av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0); */
+            // set the lossrate (0 - 51) with 0 = lossless 
+            av_opt_set(p_codec_context_->priv_data, "crf", "17", 0);
         }
 
         if (avcodec_open2(p_codec_context_, p_codec_, nullptr) < 0) {
@@ -194,8 +191,8 @@ class ArducamStereoNode : public rclcpp::Node {
             throw std::runtime_error("Could not open ffmpeg h264 codec");
         }
 
+        // configer frame for encoder
         p_frame_ = av_frame_alloc();
-
         p_frame_->format = p_codec_context_->pix_fmt;
         p_frame_->width = p_codec_context_->width;
         p_frame_->height = p_codec_context_->height;
@@ -213,40 +210,21 @@ class ArducamStereoNode : public rclcpp::Node {
     void start_cam_thread() {
         cam_thread_ = std::thread([this]() {
             RCLCPP_INFO(this->get_logger(), "Start cam thread");
+
             while (rclcpp::ok() && !stop_signal_) {
+                // get image from cam
                 IMAGE_FORMAT fmt = {IMAGE_ENCODING_I420, 50};
                 BUFFER* buffer = arducam_capture(camera_instance, &fmt, 3000);
                 if (!buffer)
                     continue;
 
-                int64 tp0 = cv::getTickCount();
                 std::unique_lock<std::mutex> lk(mutex_);
-
                 buffer_queue.push(buffer);
                 count_++;
 
-                nFrames_++;
-                if ((nFrames_ >= 10) && nFrames_ % 10 == 0) {
-                    const int N = 10;
-                    int64 t1 = cv::getTickCount();
-                    std::cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames_)
-                              << "  Average FPS: "
-                              << cv::format("%9.1f", (double)cv::getTickFrequency() * N / (t1 - t0))
-                              << "  Average time per frame: "
-                              << cv::format("%9.2f ms", (double)(t1 - t0) * 1000.0f /
-                                                            (N * cv::getTickFrequency()))
-                              << "  Average processing time: "
-                              << cv::format("%9.2f ms", (double)(processingTime)*1000.0f /
-                                                            (N * cv::getTickFrequency()))
-                              << "  Buffer Size: " << count_ << std::endl;
-                    t0 = t1;
-                    processingTime = 0;
-                }
-
                 lk.unlock();
                 con_v.notify_all();
-
-                processingTime += cv::getTickCount() - tp0;
+                sleep(5);
             }
 
             // close camera instance
@@ -260,10 +238,12 @@ class ArducamStereoNode : public rclcpp::Node {
 
     void publish_images() {
         RCLCPP_INFO(this->get_logger(), "Start publish images");
+
         int res;
         while (rclcpp::ok() && !stop_signal_) {
 
             std::unique_lock<std::mutex> lk(mutex_);
+            // wait till buffer contains an image
             con_v.wait(lk, [this] { return count_ > 0; });
             buf = buffer_queue.front();
             buffer_queue.pop();
@@ -274,27 +254,25 @@ class ArducamStereoNode : public rclcpp::Node {
             h264_msg.header.frame_id = "stereo";
             h264_msg.seq = _seq;
 
+            // write cam image in frame
             res = av_image_fill_arrays(
                 p_frame_->data, p_frame_->linesize,
                 const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(buf->data)),
-                AV_PIX_FMT_YUV420P, p_frame_->width, _height_aligned, 32);
+                AV_PIX_FMT_YUV420P, _width_aligned, p_frame_->height, 16);
             if (res < 0) {
                 RCLCPP_INFO(this->get_logger(), "Could not fill image");
             }
+            // set image count for encoder
             p_frame_->pts = _seq;
 
-            // Send packet to decoder
+            // Send packet to encoder
             if (avcodec_send_frame(p_codec_context_, p_frame_) < 0) {
                 RCLCPP_INFO(this->get_logger(), "Could not send packet");
             }
 
-            // Get decoded frame
-            // Failure to decode is common when first starting, avoid spamming the logs
+            // Get encoded frame
             if (avcodec_receive_packet(p_codec_context_, &packet_) < 0) {
-                if (++consecutive_receive_failures_ % 30 == 0) {
-                    RCLCPP_INFO(this->get_logger(), "Could not receive %d frames",
-                                consecutive_receive_failures_);
-                }
+                    RCLCPP_INFO(this->get_logger(), "Could not receive frame");
             } else {
 
                 h264_msg.data.insert(h264_msg.data.begin(), &packet_.data[0],
@@ -321,10 +299,6 @@ class ArducamStereoNode : public rclcpp::Node {
     std::mutex mutex_;
     int count_ = 0;
     bool stop_signal_ = false;
-
-    int64 nFrames_;
-    int64 t0 = 0;
-    int64 processingTime = 0;
 
     int _width;
     int _height;

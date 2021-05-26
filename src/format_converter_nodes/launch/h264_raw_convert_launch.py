@@ -4,8 +4,8 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package="pi_camera_v2",
-            executable="pi_camera_v2_h264_to_raw",
+            package="format_converter_nodes",
+            executable="h264_to_raw",
             name="pi_cam_h264_raw",
             # make shure to print output in console
             output="screen",
@@ -17,8 +17,8 @@ def generate_launch_description():
             ]
         ),
         Node(
-            package="pi_camera_v2",
-            executable="pi_camera_v2_h264_to_raw",
+            package="format_converter_nodes",
+            executable="h264_to_raw",
             name="arducam_h264_raw",
             # make shure to print output in console
             output="screen",

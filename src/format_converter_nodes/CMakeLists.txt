@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(arducam_stereo)
+project(format_converter_nodes)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -17,16 +17,14 @@ endif()
 
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 set(CMAKE_BUILD_TYPE Debug)
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(custom_interfaces REQUIRED)
-
 find_package(OpenCV REQUIRED)
-find_library(ARDUCAM_MIPI  arducam_mipicamera PATHS /usr/lib)
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
     libavdevice
@@ -36,29 +34,22 @@ pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
     libswscale
 )
 
-include_directories(include ${OpenCV_INCLUDE_DIRS})
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+# h264 to raw image subscriber
+add_executable(h264_to_raw src/h264_to_raw.cpp)
+target_link_libraries(264_to_raw ${OpenCV_LIBRARIES} PkgConfig::LIBAV)
+ament_target_dependencies(h264_to_raw rclcpp cv_bridge sensor_msgs custom_interfaces)
 
-add_executable(arducam_stereo src/arducam_stereo.cpp)
-target_link_libraries(arducam_stereo ${OpenCV_LIBRARIES} ${ARDUCAM_MIPI} PkgConfig::LIBAV)
-ament_target_dependencies(arducam_stereo rclcpp custom_interfaces sensor_msgs)
-
-target_include_directories(arducam_stereo PUBLIC
+target_include_directories(h264_to_raw PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-add_executable(arducam_stereo_cv src/arducam_stereo_cv.cpp)
-target_link_libraries(arducam_stereo_cv ${OpenCV_LIBRARIES} ${ARDUCAM_MIPI})
-ament_target_dependencies(arducam_stereo_cv rclcpp cv_bridge sensor_msgs)
-
-target_include_directories(arducam_stereo_cv PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-install(TARGETS arducam_stereo arducam_stereo_cv
+install(TARGETS h264_to_raw
   DESTINATION lib/${PROJECT_NAME})
+
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

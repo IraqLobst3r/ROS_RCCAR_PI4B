@@ -27,8 +27,8 @@ def generate_launch_description():
             output="screen",
             emulate_tty=True,
             parameters=[
-                {"width": 1600,
-                    "height": 600,
+                {"width": 3840,
+                    "height": 1080,
                     "auto_exposure": True,
                     "exposure_value": 0,
                     "auto_white_balance": True,

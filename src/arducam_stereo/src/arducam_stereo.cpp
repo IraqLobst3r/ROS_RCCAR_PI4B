@@ -174,6 +174,11 @@ class ArducamStereoNode : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(),
                         "Failed to set hflip, the camera may not support this control.");
         }
+        /* RCLCPP_INFO(this->get_logger(), "Setting the rotate..."); */
+        /* if (arducam_set_control(camera_instance, V4L2_CID_ROTATE, 2)) { */
+        /*     RCLCPP_INFO(this->get_logger(), */
+        /*                 "Failed to set rotate, the camera may not support this control."); */
+        /* } */
 
         av_register_all();
         avdevice_register_all();
@@ -211,6 +216,7 @@ class ArducamStereoNode : public rclcpp::Node {
             /* av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0); */
             // set the lossrate (0 - 51) with 0 = lossless
             av_opt_set(p_codec_context_->priv_data, "crf", "17", 0);
+            /* av_opt_set(p_codec_context_->priv_data, "vf", "hflip", 0); */
         }
 
         if (avcodec_open2(p_codec_context_, p_codec_, nullptr) < 0) {
@@ -272,9 +278,19 @@ class ArducamStereoNode : public rclcpp::Node {
             std::unique_lock<std::mutex> lk(mutex_);
             // wait till buffer contains an image
             con_v.wait(lk, [this] { return count_ > 0; });
+
+            if(count_ > 10){
+                for(int i = 0; i < 10; ++i){
+                    buf = buffer_queue.front();
+                    buffer_queue.pop();
+                    arducam_release_buffer(buf);
+                    count_--;
+                }
+            }
             buf = buffer_queue.front();
             buffer_queue.pop();
             count_--;
+
             lk.unlock();
 
             custom_interfaces::msg::H264Image h264_msg;

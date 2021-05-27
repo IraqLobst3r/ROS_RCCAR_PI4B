@@ -14,7 +14,7 @@ def generate_launch_description():
                 {"size": "1440x1080",
                     "fps": "30",
                     "frame_id" : "pi_cam",
-                    "rotation": 0
+                    "rotation": 2
                     }
             ]
         )

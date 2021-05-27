@@ -122,7 +122,7 @@ class PiCamera : public rclcpp::Node {
             RCLCPP_ERROR_STREAM(get_logger(), "Could not set rotation control: " << fd_);
             throw std::runtime_error("Could not set rotation control");
         }
-        RCLCPP_INFO(this->get_logger(), "set rotation: " << rotation_.c_str());
+        RCLCPP_INFO(this->get_logger(), "set rotation: %u", rotation_);
 
         close(fd);
     }

@@ -43,15 +43,21 @@ class ArducamStereoNode : public rclcpp::Node {
         // mode: 11, 6528x1848 */
         // mode: 12, 6528x2464 */
 
-        this->declare_parameter<int>("width", 6528);
-        this->declare_parameter<int>("height", 2464);
+        this->declare_parameter<std::string>("frame_id", "arducam_stereo");
+        this->declare_parameter<int>("width", 1600);
+        this->declare_parameter<int>("height", 600);
         this->declare_parameter<bool>("auto_exposure", true);
         this->declare_parameter<int>("exposure_value", 5);
         this->declare_parameter<bool>("auto_white_balance", true);
         this->declare_parameter<bool>("auto_wb_compensation", true);
         this->declare_parameter<int>("red_gain", 100);
         this->declare_parameter<int>("blue_gain", 100);
+        this->declare_parameter<int>("align_width_down", 0);
+        this->declare_parameter<int>("align_width_up", 0);
+        this->declare_parameter<int>("align_height_down", 0);
+        this->declare_parameter<int>("align_height_up", 0);
 
+        this->get_parameter("frame_id", _frame_id);
         this->get_parameter("width", _width);
         this->get_parameter("height", _height);
         this->get_parameter("auto_exposure", _auto_exposure);
@@ -60,12 +66,33 @@ class ArducamStereoNode : public rclcpp::Node {
         this->get_parameter("auto_wb_compensation", _auto_wb_compensation);
         this->get_parameter("red_gain", _red_gain);
         this->get_parameter("blue_gain", _blue_gain);
+        this->get_parameter("align_width_down", _align_width_down);
+        this->get_parameter("align_width_up", _align_width_up);
+        this->get_parameter("align_height_down", _align_height_down);
+        this->get_parameter("align_height_up", _align_height_up);
 
-        _width_aligned = VCOS_ALIGN_UP(_width, 16);
-        /* _height_aligned = VCOS_ALIGN_UP(_height, 16); */
+        _width_aligned = _width;
+        _height_aligned = _height;
+
+        if (_align_width_up > 0 && _align_width_down == 0) {
+            _width_aligned = VCOS_ALIGN_UP(_width, _align_width_up);
+        } else if (_align_width_up == 0 && _align_width_down > 0) {
+            _width_aligned = VCOS_ALIGN_DOWN(_width, _align_width_down);
+        } else if ((_align_width_up == 0 && _align_width_down == 0) !) {
+            RCLCPP_INFO(this->get_logger(), "width alignment values false \n One must be set to 0");
+        }
+
+        if (_align_height_up > 0 && _align_height_down == 0) {
+            _height_aligned = VCOS_ALIGN_UP(_height, _align_height_up);
+        } else if (_align_height_up == 0 && _align_height_down > 0) {
+            _height_aligned = VCOS_ALIGN_DOWN(_height, _align_height_down);
+        } else if ((_align_height_up == 0 && _align_height_down == 0) !) {
+            RCLCPP_INFO(this->get_logger(),
+                        "height alignment values false \n One must be set to 0");
+        }
 
         publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
-            "arducam_stereo/h264_image", 10);
+            _frame_id + "/h264_image", 10);
 
         int res;
         RCLCPP_INFO(this->get_logger(), "Opening camera...");
@@ -181,9 +208,9 @@ class ArducamStereoNode : public rclcpp::Node {
             // set config best for application
             /* av_opt_set(p_codec_context_->priv_data, "tune", "zerolatency", 0); */
             // set config based on encoding time
-            /* av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0); */
+            av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0);
             // set the lossrate (0 - 51) with 0 = lossless
-            av_opt_set(p_codec_context_->priv_data, "crf", "17", 0);
+            /* av_opt_set(p_codec_context_->priv_data, "crf", "17", 0); */
         }
 
         if (avcodec_open2(p_codec_context_, p_codec_, nullptr) < 0) {
@@ -224,7 +251,7 @@ class ArducamStereoNode : public rclcpp::Node {
 
                 lk.unlock();
                 con_v.notify_all();
-                sleep(5);
+                sleep(1);
             }
 
             // close camera instance
@@ -258,7 +285,7 @@ class ArducamStereoNode : public rclcpp::Node {
             res = av_image_fill_arrays(
                 p_frame_->data, p_frame_->linesize,
                 const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(buf->data)),
-                AV_PIX_FMT_YUV420P, _width_aligned, p_frame_->height, 16);
+                AV_PIX_FMT_YUV420P, _width_aligned, _height_aligned, 16);
             if (res < 0) {
                 RCLCPP_INFO(this->get_logger(), "Could not fill image");
             }
@@ -300,10 +327,15 @@ class ArducamStereoNode : public rclcpp::Node {
     int count_ = 0;
     bool stop_signal_ = false;
 
+    std::string _frame_id;
     int _width;
     int _height;
     int _width_aligned;
     int _height_aligned;
+    int _align_width_down;
+    int _align_width_up;
+    int _align_height_down;
+    int _align_height_up;
     int _seq = 0;
     // belichtungszeit auto empfohlen
     bool _auto_exposure;

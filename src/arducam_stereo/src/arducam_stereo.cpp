@@ -78,7 +78,7 @@ class ArducamStereoNode : public rclcpp::Node {
             _width_aligned = VCOS_ALIGN_UP(_width, _align_width_up);
         } else if (_align_width_up == 0 && _align_width_down > 0) {
             _width_aligned = VCOS_ALIGN_DOWN(_width, _align_width_down);
-        } else if ((_align_width_up == 0 && _align_width_down == 0) !) {
+        } else if ((_align_width_up == 0 && _align_width_down == 0) == false) {
             RCLCPP_INFO(this->get_logger(), "width alignment values false \n One must be set to 0");
         }
 
@@ -86,7 +86,7 @@ class ArducamStereoNode : public rclcpp::Node {
             _height_aligned = VCOS_ALIGN_UP(_height, _align_height_up);
         } else if (_align_height_up == 0 && _align_height_down > 0) {
             _height_aligned = VCOS_ALIGN_DOWN(_height, _align_height_down);
-        } else if ((_align_height_up == 0 && _align_height_down == 0) !) {
+        } else if ((_align_height_up == 0 && _align_height_down == 0) == false) {
             RCLCPP_INFO(this->get_logger(),
                         "height alignment values false \n One must be set to 0");
         }
@@ -208,9 +208,9 @@ class ArducamStereoNode : public rclcpp::Node {
             // set config best for application
             /* av_opt_set(p_codec_context_->priv_data, "tune", "zerolatency", 0); */
             // set config based on encoding time
-            av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0);
+            /* av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0); */
             // set the lossrate (0 - 51) with 0 = lossless
-            /* av_opt_set(p_codec_context_->priv_data, "crf", "17", 0); */
+            av_opt_set(p_codec_context_->priv_data, "crf", "17", 0);
         }
 
         if (avcodec_open2(p_codec_context_, p_codec_, nullptr) < 0) {
@@ -241,7 +241,7 @@ class ArducamStereoNode : public rclcpp::Node {
             while (rclcpp::ok() && !stop_signal_) {
                 // get image from cam
                 IMAGE_FORMAT fmt = {IMAGE_ENCODING_I420, 50};
-                BUFFER* buffer = arducam_capture(camera_instance, &fmt, 3000);
+                BUFFER* buffer = arducam_capture(camera_instance, &fmt, 6000);
                 if (!buffer)
                     continue;
 

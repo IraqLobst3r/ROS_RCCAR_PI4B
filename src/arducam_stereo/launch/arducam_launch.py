@@ -27,8 +27,8 @@ def generate_launch_description():
             output="screen",
             emulate_tty=True,
             parameters=[
-                {"width": "1600",
-                    "height": "600",
+                {"width": 1600,
+                    "height": 600,
                     "auto_exposure": True,
                     "exposure_value": 0,
                     "auto_white_balance": True,
@@ -37,7 +37,7 @@ def generate_launch_description():
                     "blue_gain": 100,
                     "align_width_up": 0,
                     "align_width_down": 0,
-                    "align_height_up": 0,
+                    "align_height_up": 16,
                     "align_height_down": 0,
                     "frame_id" : "arducam_stereo"
                     }

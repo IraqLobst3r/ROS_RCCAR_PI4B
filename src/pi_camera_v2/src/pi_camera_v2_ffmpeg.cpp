@@ -39,7 +39,8 @@ class PiCamera : public rclcpp::Node {
         publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
             frame_id_ + "/h264_image", 10);
 
-        this->set_v4l2_controls();
+        // TODO: make control settings permanent
+        /* this->set_v4l2_controls(); */
         // Initialize libavdevice and register all the input and output devices.
         av_register_all();
         avdevice_register_all();

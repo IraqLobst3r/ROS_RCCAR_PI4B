@@ -6,6 +6,7 @@ cmake-build*/**
 compile_commands.json
 tags
 .vscode/**
+.clangd/**
 .idea/**
 .cache/**
 *.swp

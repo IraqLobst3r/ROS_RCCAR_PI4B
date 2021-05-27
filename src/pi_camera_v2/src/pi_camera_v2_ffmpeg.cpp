@@ -3,6 +3,8 @@
 #include <utility>
 #include <vector>
 #include <linux/videodev2.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 
 extern "C" {
 #include "libavdevice/avdevice.h"
@@ -122,6 +124,7 @@ class PiCamera : public rclcpp::Node {
     std::string fps_;
     std::string frame_id_;
     std::string fd_ = "/dev/video0";
+    struct v4l2_control control;
     AVFormatContext* format_context_{nullptr};
     AVInputFormat* input_format_{nullptr};
     rclcpp::Publisher<custom_interfaces::msg::H264Image>::SharedPtr publisher_;

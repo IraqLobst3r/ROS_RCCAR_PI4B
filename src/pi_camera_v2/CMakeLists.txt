@@ -48,9 +48,8 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(
-  DIRECTORY scripts
-  DESTINATION bin/${PROJECT_NAME}
+install(PROGRAMS scripts/v4l2_controls.sh
+    DESTINATION lib/${PROJECT_NAME}}
 )
 
 if(BUILD_TESTING)

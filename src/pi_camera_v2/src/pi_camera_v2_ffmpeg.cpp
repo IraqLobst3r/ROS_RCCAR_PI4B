@@ -2,6 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <linux/videodev2.h>
 
 extern "C" {
 #include "libavdevice/avdevice.h"
@@ -56,7 +57,6 @@ class PiCamera : public rclcpp::Node {
         av_dict_set(&format_options, "input_format", "h264", 0);
         av_dict_set(&format_options, "framerate", fps_.c_str(), 0);
         av_dict_set(&format_options, "video_size", size_.c_str(), 0);
-        av_dict_set(&format_options, "vf", "hflip", 0);
 
         // Open 4vl device, pass ownership of format_options
         if (avformat_open_input(&format_context_, fd_.c_str(), input_format_, &format_options) <
@@ -97,6 +97,26 @@ class PiCamera : public rclcpp::Node {
     ~PiCamera() { RCLCPP_INFO(this->get_logger(), "Deconstructor PiCamera"); }
 
   private:
+    void set_v4l2_controls(){
+        // open camera file
+        int fd;
+        fd = open(fd_, O_RDWR);
+        if (fd < 0) {
+            RCLCPP_ERROR_STREAM(get_logger(), "Could not open the v4l2 device for control settings: " << fd_);
+            throw std::runtime_error("Could not open the v4l2 device for control settings");
+        }
+
+        memset(&control, 0, sizeof (control));
+        control.id = V4L2_CID_ROTATE;
+        control.value = 2;
+
+        if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
+            RCLCPP_ERROR_STREAM(get_logger(), "Could not set rotation control: " << fd_);
+            throw std::runtime_error("Could not set rotation control");
+        }
+    
+    }
+
     int nFrames_;
     std::string size_;
     std::string fps_;

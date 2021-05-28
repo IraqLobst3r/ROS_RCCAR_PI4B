@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   
   <exec_depend>format_converter_nodes</exec_depend>
+  <exec_depend>joy</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

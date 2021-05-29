@@ -306,13 +306,19 @@ class ArducamStereoNode : public rclcpp::Node {
             }
             RCLCPP_INFO(this->get_logger(), "copy frame OK");
             //crop image
-            p_frame_left->crop_left = _width/2;
+            p_frame_left->crop_left = 0;
+            p_frame_left->crop_right = 10;
+            p_frame_left->crop_top = 0;
+            p_frame_left->crop_bottom = 10;
             if(av_frame_apply_cropping(p_frame_left,0) < 0){
                 RCLCPP_ERROR(this->get_logger(), "Could not crop left frame");
             }
             RCLCPP_INFO(this->get_logger(), "crop left frame OK");
             //crop image
-            p_frame_right->crop_right = _width/2;
+            p_frame_right->crop_left = 0;
+            p_frame_right->crop_right = 10;
+            p_frame_right->crop_top = 0;
+            p_frame_right->crop_bottom = 10;
             if(av_frame_apply_cropping(p_frame_left,0) < 0){
                 RCLCPP_ERROR(this->get_logger(), "Could not crop right frame");
             }

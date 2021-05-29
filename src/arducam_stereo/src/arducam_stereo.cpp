@@ -132,7 +132,7 @@ class ArducamStereoNode : public rclcpp::Node {
         RCLCPP_INFO(this->get_logger(), "Setting resolution...");
         res = arducam_set_resolution(camera_instance, &_width, &_height);
         if (res) {
-            RCLCPP_INFO(this->get_logger(), "set resolution status = %d", res);
+            RCLCPP_ERROR(this->get_logger(), "set resolution status = %d", res);
             throw std::runtime_error("Could not set resolution");
         } else {
             RCLCPP_INFO(this->get_logger(), "current resolution is %dx%d", _width, _height);
@@ -188,7 +188,7 @@ class ArducamStereoNode : public rclcpp::Node {
         p_codec_context_->time_base = (AVRational){1, 1};
         p_codec_context_->framerate = (AVRational){1, 1};
         p_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
-        p_codec_context_->width = _width;
+        p_codec_context_->width = _width/2;
         p_codec_context_->height = _height;
         /* p_codec_context_->level = 32; */
         p_codec_context_->profile = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_STEREO_HIGH
@@ -208,13 +208,13 @@ class ArducamStereoNode : public rclcpp::Node {
         }
 
         // configer frame for encoder
-        p_frame_ = av_frame_alloc();
-        p_frame_->format = p_codec_context_->pix_fmt;
-        p_frame_->width = p_codec_context_->width;
-        p_frame_->height = p_codec_context_->height;
+        p_frame_left = av_frame_alloc();
+        p_frame_left->format = p_codec_context_->pix_fmt;
+        p_frame_left->width = p_codec_context_->width;
+        p_frame_left->height = p_codec_context_->height;
 
-        if (av_frame_get_buffer(p_frame_, 0) < 0) {
-            RCLCPP_INFO(this->get_logger(), "Could not allocate the video frame data");
+        if (av_frame_get_buffer(p_frame_left, 0) < 0) {
+            RCLCPP_ERROR(this->get_logger(), "Could not allocate the video frame data");
             throw std::runtime_error("Could not allocate the video frame data");
         }
 
@@ -282,23 +282,38 @@ class ArducamStereoNode : public rclcpp::Node {
 
             // write cam image in frame
             res = av_image_fill_arrays(
-                p_frame_->data, p_frame_->linesize,
+                p_frame_left->data, p_frame_left->linesize,
                 const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(buf->data)),
                 AV_PIX_FMT_YUV420P, _width_aligned, _height_aligned, 16);
             if (res < 0) {
-                RCLCPP_INFO(this->get_logger(), "Could not fill image");
+                RCLCPP_ERROR(this->get_logger(), "Could not fill image");
+            }
+            // copy frame
+            if(av_frame_copy(p_frame_right, p_frame_left)){
+                RCLCPP_ERROR(this->get_logger(), "Could not copy frame");
+            }
+            //crop image
+            p_frame_left->crop_left = _width/2;
+            if(av_frame_apply_cropping(p_frame_left,0) < 0){
+                RCLCPP_ERROR(this->get_logger(), "Could not crop left frame");
+            }
+            //crop image
+            p_frame_right->crop_right = _width/2;
+            if(av_frame_apply_cropping(p_frame_left,0) < 0){
+                RCLCPP_ERROR(this->get_logger(), "Could not crop right frame");
             }
             // set image count for encoder
-            p_frame_->pts = _seq;
+            p_frame_left->pts = _seq;
+            p_frame_right->pts = _seq;
 
             // Send packet to encoder
-            if (avcodec_send_frame(p_codec_context_, p_frame_) < 0) {
-                RCLCPP_INFO(this->get_logger(), "Could not send packet");
+            if (avcodec_send_frame(p_codec_context_, p_frame_left) < 0) {
+                RCLCPP_ERROR(this->get_logger(), "Could not send packet");
             }
 
             // Get encoded frame
             if (avcodec_receive_packet(p_codec_context_, &packet_) < 0) {
-                RCLCPP_INFO(this->get_logger(), "Could not receive frame");
+                RCLCPP_ERROR(this->get_logger(), "Could not receive frame");
             } else {
 
                 h264_msg.data.insert(h264_msg.data.begin(), &packet_.data[0],
@@ -352,7 +367,8 @@ class ArducamStereoNode : public rclcpp::Node {
     AVPacket packet_;
     AVCodec* p_codec_{nullptr};
     AVCodecContext* p_codec_context_{nullptr};
-    AVFrame* p_frame_{nullptr};
+    AVFrame* p_frame_left{nullptr};
+    AVFrame* p_frame_right{nullptr};
 
     CAMERA_INSTANCE camera_instance;
     rclcpp::Publisher<custom_interfaces::msg::H264Image>::SharedPtr publisher_;

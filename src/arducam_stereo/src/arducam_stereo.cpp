@@ -44,8 +44,8 @@ class ArducamStereoNode : public rclcpp::Node {
         // mode: 12, 6528x2464 */
 
         this->declare_parameter<std::string>("frame_id", "arducam_stereo");
-        this->declare_parameter<int>("width", 1600);
-        this->declare_parameter<int>("height", 600);
+        this->declare_parameter<int>("width", 3840);
+        this->declare_parameter<int>("height", 1080);
         this->declare_parameter<bool>("auto_exposure", true);
         this->declare_parameter<int>("exposure_value", 5);
         this->declare_parameter<bool>("auto_white_balance", true);
@@ -170,50 +170,88 @@ class ArducamStereoNode : public rclcpp::Node {
         avdevice_register_all();
         av_log_set_level(AV_LOG_INFO);
 
-        av_init_packet(&packet_);
+        av_init_packet(&packet_left);
+        av_init_packet(&packet_right);
 
-        p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264);
+        /* p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264); */
         // hardware encoder for 264 format
-        /* p_codec_ = avcodec_find_encoder_by_name("h264_omx"); */
-        if (!p_codec_) {
+        p_codec_left = avcodec_find_encoder_by_name("h264_omx");
+        if (!p_codec_left) {
             RCLCPP_ERROR(this->get_logger(), "Could not find ffmpeg h264 codec");
             throw std::runtime_error("Could not find ffmpeg h264 codec");
         }
 
-        p_codec_context_ = avcodec_alloc_context3(p_codec_);
-        if (!p_codec_context_) {
+        p_codec_context_left = avcodec_alloc_context3(p_codec_left);
+        if (!p_codec_context_left) {
             RCLCPP_ERROR(this->get_logger(), "Could not allocate ffmpeg h264 codec");
             throw std::runtime_error("Could not open ffmpeg h264 codec");
         }
 
         // configer encoder
-        p_codec_context_->time_base = (AVRational){1, 1};
-        p_codec_context_->framerate = (AVRational){1, 1};
-        p_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
-        p_codec_context_->width = _width/2;
-        p_codec_context_->height = _height;
+        p_codec_context_left->time_base = (AVRational){1, 1};
+        p_codec_context_left->framerate = (AVRational){1, 1};
+        p_codec_context_left->pix_fmt = AV_PIX_FMT_YUV420P;
+        p_codec_context_left->width = _width/2;
+        p_codec_context_left->height = _height;
         /* p_codec_context_->level = 32; */
-        p_codec_context_->profile = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_STEREO_HIGH
+        p_codec_context_left->profile = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_STEREO_HIGH
 
-        if (p_codec_->id == AV_CODEC_ID_H264) {
+        if (p_codec_left->id == AV_CODEC_ID_H264) {
             // set config best for application
             /* av_opt_set(p_codec_context_->priv_data, "tune", "zerolatency", 0); */
             // set config based on encoding time
             /* av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0); */
             // set the lossrate (0 - 51) with 0 = lossless
-            av_opt_set(p_codec_context_->priv_data, "crf", "17", 0);
+            av_opt_set(p_codec_context_left->priv_data, "crf", "17", 0);
         }
 
-        if (avcodec_open2(p_codec_context_, p_codec_, nullptr) < 0) {
+        if (avcodec_open2(p_codec_context_left, p_codec_left, nullptr) < 0) {
+            RCLCPP_ERROR(this->get_logger(), "Could not open ffmpeg h264 codec");
+            throw std::runtime_error("Could not open ffmpeg h264 codec");
+        }
+
+        /* p_codec_ = avcodec_find_encoder(AV_CODEC_ID_H264); */
+        // hardware encoder for 264 format
+        p_codec_right = avcodec_find_encoder_by_name("h264_omx");
+        if (!p_codec_right) {
+            RCLCPP_ERROR(this->get_logger(), "Could not find ffmpeg h264 codec");
+            throw std::runtime_error("Could not find ffmpeg h264 codec");
+        }
+
+        p_codec_context_right = avcodec_alloc_context3(p_codec_right);
+        if (!p_codec_context_right) {
+            RCLCPP_ERROR(this->get_logger(), "Could not allocate ffmpeg h264 codec");
+            throw std::runtime_error("Could not open ffmpeg h264 codec");
+        }
+
+        // configer encoder
+        p_codec_context_right->time_base = (AVRational){1, 1};
+        p_codec_context_right->framerate = (AVRational){1, 1};
+        p_codec_context_right->pix_fmt = AV_PIX_FMT_YUV420P;
+        p_codec_context_right->width = _width/2;
+        p_codec_context_right->height = _height;
+        /* p_codec_context_->level = 32; */
+        p_codec_context_right->profile = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_STEREO_HIGH
+
+        if (p_codec_right->id == AV_CODEC_ID_H264) {
+            // set config best for application
+            /* av_opt_set(p_codec_context_->priv_data, "tune", "zerolatency", 0); */
+            // set config based on encoding time
+            /* av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0); */
+            // set the lossrate (0 - 51) with 0 = lossless
+            av_opt_set(p_codec_context_right->priv_data, "crf", "17", 0);
+        }
+
+        if (avcodec_open2(p_codec_context_right, p_codec_right, nullptr) < 0) {
             RCLCPP_ERROR(this->get_logger(), "Could not open ffmpeg h264 codec");
             throw std::runtime_error("Could not open ffmpeg h264 codec");
         }
 
         // configer frame for encoder
         p_frame_left = av_frame_alloc();
-        p_frame_left->format = p_codec_context_->pix_fmt;
-        p_frame_left->width = p_codec_context_->width;
-        p_frame_left->height = p_codec_context_->height;
+        p_frame_left->format = p_codec_context_left->pix_fmt;
+        p_frame_left->width = _width;
+        p_frame_left->height = _height;
 
         if (av_frame_get_buffer(p_frame_left, 0) < 0) {
             RCLCPP_ERROR(this->get_logger(), "Could not allocate the left video frame data");
@@ -222,14 +260,34 @@ class ArducamStereoNode : public rclcpp::Node {
 
         // configer frame for encoder
         p_frame_right = av_frame_alloc();
-        p_frame_right->format = p_codec_context_->pix_fmt;
-        p_frame_right->width = p_codec_context_->width;
-        p_frame_right->height = p_codec_context_->height;
+        p_frame_right->format = p_codec_context_right->pix_fmt;
+        p_frame_right->width = _width;
+        p_frame_right->height = _height;
 
         if (av_frame_get_buffer(p_frame_right, 0) < 0) {
             RCLCPP_ERROR(this->get_logger(), "Could not allocate the right video frame data");
             throw std::runtime_error("Could not allocate the right video frame data");
         }
+
+        //crop image
+        p_frame_left->crop_left = 0;
+        p_frame_left->crop_top = 0;
+        p_frame_left->crop_right = _width/2 +100;
+        p_frame_left->crop_bottom = 0;
+        if(av_frame_apply_cropping(p_frame_left,0) < 0){
+            RCLCPP_ERROR(this->get_logger(), "Could not crop left frame");
+        }
+        RCLCPP_INFO(this->get_logger(), "crop left frame OK");
+
+        //crop image
+        p_frame_right->crop_left = 0;
+        p_frame_right->crop_top = 0;
+        p_frame_right->crop_right = 0;
+        p_frame_right->crop_bottom = 0;
+        if(av_frame_apply_cropping(p_frame_right,0) < 0){
+            RCLCPP_ERROR(this->get_logger(), "Could not crop right frame");
+        }
+        RCLCPP_INFO(this->get_logger(), "crop right frame OK");
 
         start_cam_thread();
         publish_images();
@@ -269,6 +327,8 @@ class ArducamStereoNode : public rclcpp::Node {
         RCLCPP_INFO(this->get_logger(), "Start publish images");
 
         int res;
+        bool flag_left;
+        bool flag_right;
         while (rclcpp::ok() && !stop_signal_) {
 
             std::unique_lock<std::mutex> lk(mutex_);
@@ -290,9 +350,10 @@ class ArducamStereoNode : public rclcpp::Node {
             lk.unlock();
 
             custom_interfaces::msg::H264Image h264_msg_left;
-            custom_interfaces::msg::H264Image h264_msg_right;
             h264_msg_left.header.frame_id = "h264_left";
             h264_msg_left.seq = _seq;
+
+            custom_interfaces::msg::H264Image h264_msg_right;
             h264_msg_right.header.frame_id = "h264_right";
             h264_msg_right.seq = _seq;
 
@@ -304,46 +365,54 @@ class ArducamStereoNode : public rclcpp::Node {
             if (res < 0) {
                 RCLCPP_ERROR(this->get_logger(), "Could not fill image");
             }
-            RCLCPP_INFO(this->get_logger(), "image to frame OK");
-            // copy frame
-            if(av_frame_copy(p_frame_right, p_frame_left)){
-                RCLCPP_ERROR(this->get_logger(), "Could not copy frame");
+            RCLCPP_INFO(this->get_logger(), "image to left frame OK");
+
+            // write cam image in frame
+            res = av_image_fill_arrays(
+                p_frame_right->data, p_frame_right->linesize,
+                const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(buf->data)),
+                AV_PIX_FMT_YUV420P, _width_aligned, _height_aligned, 16);
+            if (res < 0) {
+                RCLCPP_ERROR(this->get_logger(), "Could not fill image");
             }
-            RCLCPP_INFO(this->get_logger(), "copy frame OK");
-            //crop image
-            p_frame_left->crop_left = 0;
-            p_frame_left->crop_right = 1000;
-            p_frame_left->crop_top = 0;
-            p_frame_left->crop_bottom = 0;
-            if(av_frame_apply_cropping(p_frame_left,0) < 0){
-                RCLCPP_ERROR(this->get_logger(), "Could not crop left frame");
-            }
-            RCLCPP_INFO(this->get_logger(), "crop left frame OK");
-            //crop image
-            p_frame_right->crop_left = 1000;
-            p_frame_right->crop_right = 0;
-            p_frame_right->crop_top = 0;
-            p_frame_right->crop_bottom = 0;
-            if(av_frame_apply_cropping(p_frame_left,0) < 0){
-                RCLCPP_ERROR(this->get_logger(), "Could not crop right frame");
-            }
-            RCLCPP_INFO(this->get_logger(), "crop right frame OK");
+            RCLCPP_INFO(this->get_logger(), "image to right frame OK");
+
+            /* // copy frame */
+            /* if(av_frame_copy(p_frame_right, p_frame_left)){ */
+            /*     RCLCPP_ERROR(this->get_logger(), "Could not copy frame"); */
+            /* } */
+            /* RCLCPP_INFO(this->get_logger(), "copy frame OK"); */
+
             // set image count for encoder
             p_frame_left->pts = _seq;
             p_frame_right->pts = _seq;
-
+            
             // Send packet to encoder
-            if (avcodec_send_frame(p_codec_context_, p_frame_left) < 0) {
+            if (avcodec_send_frame(p_codec_context_right, p_frame_right) < 0) {
                 RCLCPP_ERROR(this->get_logger(), "Could not send packet");
             }
-
             // Get encoded frame
-            if (avcodec_receive_packet(p_codec_context_, &packet_) < 0) {
+            if (avcodec_receive_packet(p_codec_context_right, &packet_right) < 0) {
                 RCLCPP_ERROR(this->get_logger(), "Could not receive frame");
+                flag_right = false;
             } else {
+                flag_right = true;
+            }
+            // Send packet to encoder
+            if (avcodec_send_frame(p_codec_context_left, p_frame_left) < 0) {
+                RCLCPP_ERROR(this->get_logger(), "Could not send packet");
+            }
+            // Get encoded frame
+            if (avcodec_receive_packet(p_codec_context_left, &packet_left) < 0) {
+                RCLCPP_ERROR(this->get_logger(), "Could not receive frame");
+                flag_left = false;
+            } else {
+                flag_left = true;
+            }
 
-                h264_msg_left.data.insert(h264_msg_left.data.begin(), &packet_.data[0],
-                                     &packet_.data[packet_.size]);
+            if(flag_left){
+                h264_msg_left.data.insert(h264_msg_left.data.begin(), &packet_left.data[0],
+                                     &packet_left.data[packet_left.size]);
                 h264_msg_left.header.stamp = this->now();
 
                 if (publisher_left->get_subscription_count() > 0) {
@@ -351,18 +420,9 @@ class ArducamStereoNode : public rclcpp::Node {
                 }
             }
 
-            // Send packet to encoder
-            if (avcodec_send_frame(p_codec_context_, p_frame_right) < 0) {
-                RCLCPP_ERROR(this->get_logger(), "Could not send packet");
-            }
-
-            // Get encoded frame
-            if (avcodec_receive_packet(p_codec_context_, &packet_) < 0) {
-                RCLCPP_ERROR(this->get_logger(), "Could not receive frame");
-            } else {
-
-                h264_msg_right.data.insert(h264_msg_right.data.begin(), &packet_.data[0],
-                                     &packet_.data[packet_.size]);
+            if(flag_right){
+                h264_msg_right.data.insert(h264_msg_right.data.begin(), &packet_right.data[0],
+                                     &packet_right.data[packet_right.size]);
                 h264_msg_right.header.stamp = this->now();
 
                 if (publisher_right->get_subscription_count() > 0) {
@@ -406,13 +466,18 @@ class ArducamStereoNode : public rclcpp::Node {
     int _blue_gain;
     std::thread cam_thread_;
     BUFFER* buf;
+    BUFFER* buf_copy;
     std::vector<uint8_t> vec;
 
     int consecutive_receive_failures_;
-    AVPacket packet_;
-    AVCodec* p_codec_{nullptr};
-    AVCodecContext* p_codec_context_{nullptr};
+    AVPacket packet_left;
+    AVCodec* p_codec_left{nullptr};
+    AVCodecContext* p_codec_context_left{nullptr};
     AVFrame* p_frame_left{nullptr};
+
+    AVPacket packet_right;
+    AVCodec* p_codec_right{nullptr};
+    AVCodecContext* p_codec_context_right{nullptr};
     AVFrame* p_frame_right{nullptr};
 
     CAMERA_INSTANCE camera_instance;

@@ -164,22 +164,6 @@ class ArducamStereoNode : public rclcpp::Node {
             arducam_manual_set_awb_compensation(_red_gain, _blue_gain);
         }
 
-        /**
-         * @brief mirror the picture horizontal
-         *
-         * @see https://www.kernel.org/doc/html/v4.9/media/uapi/v4l/control.html
-         */
-        RCLCPP_INFO(this->get_logger(), "Setting the hfilp...");
-        if (arducam_set_control(camera_instance, V4L2_CID_HFLIP, 1)) {
-            RCLCPP_INFO(this->get_logger(),
-                        "Failed to set hflip, the camera may not support this control.");
-        }
-        /* RCLCPP_INFO(this->get_logger(), "Setting the rotate..."); */
-        /* if (arducam_set_control(camera_instance, V4L2_CID_ROTATE, 2)) { */
-        /*     RCLCPP_INFO(this->get_logger(), */
-        /*                 "Failed to set rotate, the camera may not support this control."); */
-        /* } */
-
         av_register_all();
         avdevice_register_all();
         av_log_set_level(AV_LOG_INFO);
@@ -216,7 +200,6 @@ class ArducamStereoNode : public rclcpp::Node {
             /* av_opt_set(p_codec_context_->priv_data, "preset", "ultrafast", 0); */
             // set the lossrate (0 - 51) with 0 = lossless
             av_opt_set(p_codec_context_->priv_data, "crf", "17", 0);
-            /* av_opt_set(p_codec_context_->priv_data, "vf", "hflip", 0); */
         }
 
         if (avcodec_open2(p_codec_context_, p_codec_, nullptr) < 0) {
@@ -247,7 +230,7 @@ class ArducamStereoNode : public rclcpp::Node {
             while (rclcpp::ok() && !stop_signal_) {
                 // get image from cam
                 IMAGE_FORMAT fmt = {IMAGE_ENCODING_I420, 50};
-                BUFFER* buffer = arducam_capture(camera_instance, &fmt, 6000);
+                BUFFER* buffer = arducam_capture(camera_instance, &fmt, 3000);
                 if (!buffer)
                     continue;
 

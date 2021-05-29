@@ -3,9 +3,6 @@
 #include <utility>
 #include <vector>
 #include <linux/videodev2.h>
-#include <sys/ioctl.h>
-#include <fcntl.h> // open filedescriptor
-#include <unistd.h> // close filedescriptor
 
 extern "C" {
 #include "libavdevice/avdevice.h"
@@ -15,8 +12,6 @@ extern "C" {
 #include "custom_interfaces/msg/h264_image.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include <rclcpp/node.hpp>
-
-static const char DEVICE[] = "/dev/video0";
 
 class PiCamera : public rclcpp::Node {
   public:
@@ -39,8 +34,6 @@ class PiCamera : public rclcpp::Node {
         publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
             frame_id_ + "/h264_image", 10);
 
-        // TODO: make control settings permanent
-        /* this->set_v4l2_controls(); */
         // Initialize libavdevice and register all the input and output devices.
         av_register_all();
         avdevice_register_all();
@@ -106,35 +99,12 @@ class PiCamera : public rclcpp::Node {
     ~PiCamera() { RCLCPP_INFO(this->get_logger(), "Deconstructor PiCamera"); }
 
   private:
-    void set_v4l2_controls(){
-        // open camera file
-        int fd;
-        fd = open(DEVICE, O_RDWR);
-        if (fd < 0) {
-            RCLCPP_ERROR_STREAM(get_logger(), "Could not open the v4l2 device for control settings: " << fd_);
-            throw std::runtime_error("Could not open the v4l2 device for control settings");
-        }
-
-        memset(&control, 0, sizeof (control));
-        control.id = V4L2_CID_ROTATE;
-        control.value = rotation_;
-
-        if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
-            RCLCPP_ERROR_STREAM(get_logger(), "Could not set rotation control: " << fd_);
-            throw std::runtime_error("Could not set rotation control");
-        }
-        RCLCPP_INFO(this->get_logger(), "set rotation: %u", rotation_);
-
-        close(fd);
-    }
-
     int nFrames_;
     int rotation_;
     std::string size_;
     std::string fps_;
     std::string frame_id_;
     std::string fd_ = "/dev/video0";
-    struct v4l2_control control;
     AVFormatContext* format_context_{nullptr};
     AVInputFormat* input_format_{nullptr};
     rclcpp::Publisher<custom_interfaces::msg::H264Image>::SharedPtr publisher_;

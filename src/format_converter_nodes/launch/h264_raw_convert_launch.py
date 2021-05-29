@@ -19,13 +19,26 @@ def generate_launch_description():
         Node(
             package="format_converter_nodes",
             executable="h264_to_raw",
-            name="arducam_h264_raw",
+            name="arducam_raw_left",
             # make shure to print output in console
             output="screen",
             emulate_tty=True,
             parameters=[
-                {"pub_topic": "/arducam_stereo/raw",
-                    "sub_topic": "/arducam_stereo/h264_image",
+                {"pub_topic": "/arducam_stereo/raw_left",
+                    "sub_topic": "/arducam_stereo/h264_image/left",
+                    }
+            ]
+        ),
+        Node(
+            package="format_converter_nodes",
+            executable="h264_to_raw",
+            name="arducam_raw_right",
+            # make shure to print output in console
+            output="screen",
+            emulate_tty=True,
+            parameters=[
+                {"pub_topic": "/arducam_stereo/raw_right",
+                    "sub_topic": "/arducam_stereo/h264_image/right",
                     }
             ]
         )

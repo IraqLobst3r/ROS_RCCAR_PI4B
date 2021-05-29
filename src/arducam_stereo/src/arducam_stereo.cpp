@@ -91,8 +91,10 @@ class ArducamStereoNode : public rclcpp::Node {
                         "height alignment values false \n One must be set to 0");
         }
 
-        publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
-            _frame_id + "/h264_image", 10);
+        publisher_left = this->create_publisher<custom_interfaces::msg::H264Image>(
+            _frame_id + "/h264_image/left", 10);
+        publisher_right = this->create_publisher<custom_interfaces::msg::H264Image>(
+            _frame_id + "/h264_image/right", 10);
 
         int res;
         RCLCPP_INFO(this->get_logger(), "Opening camera...");
@@ -287,9 +289,12 @@ class ArducamStereoNode : public rclcpp::Node {
 
             lk.unlock();
 
-            custom_interfaces::msg::H264Image h264_msg;
-            h264_msg.header.frame_id = "stereo";
-            h264_msg.seq = _seq;
+            custom_interfaces::msg::H264Image h264_msg_left;
+            custom_interfaces::msg::H264Image h264_msg_right;
+            h264_msg_left.header.frame_id = "h264_left";
+            h264_msg_left.seq = _seq;
+            h264_msg_right.header.frame_id = "h264_right";
+            h264_msg_right.seq = _seq;
 
             // write cam image in frame
             res = av_image_fill_arrays(
@@ -337,12 +342,31 @@ class ArducamStereoNode : public rclcpp::Node {
                 RCLCPP_ERROR(this->get_logger(), "Could not receive frame");
             } else {
 
-                h264_msg.data.insert(h264_msg.data.begin(), &packet_.data[0],
+                h264_msg_left.data.insert(h264_msg.data.begin(), &packet_.data[0],
                                      &packet_.data[packet_.size]);
-                h264_msg.header.stamp = this->now();
+                h264_msg_left.header.stamp = this->now();
 
-                if (publisher_->get_subscription_count() > 0) {
-                    publisher_->publish(h264_msg);
+                if (publisher_left->get_subscription_count() > 0) {
+                    publisher_left->publish(h264_msg_left);
+                }
+            }
+
+            // Send packet to encoder
+            if (avcodec_send_frame(p_codec_context_, p_frame_right) < 0) {
+                RCLCPP_ERROR(this->get_logger(), "Could not send packet");
+            }
+
+            // Get encoded frame
+            if (avcodec_receive_packet(p_codec_context_, &packet_) < 0) {
+                RCLCPP_ERROR(this->get_logger(), "Could not receive frame");
+            } else {
+
+                h264_msg_right.data.insert(h264_msg.data.begin(), &packet_.data[0],
+                                     &packet_.data[packet_.size]);
+                h264_msg_right.header.stamp = this->now();
+
+                if (publisher_right->get_subscription_count() > 0) {
+                    publisher_right->publish(h264_msg);
                 }
             }
 
@@ -392,7 +416,8 @@ class ArducamStereoNode : public rclcpp::Node {
     AVFrame* p_frame_right{nullptr};
 
     CAMERA_INSTANCE camera_instance;
-    rclcpp::Publisher<custom_interfaces::msg::H264Image>::SharedPtr publisher_;
+    rclcpp::Publisher<custom_interfaces::msg::H264Image>::SharedPtr publisher_left;
+    rclcpp::Publisher<custom_interfaces::msg::H264Image>::SharedPtr publisher_right;
 };
 
 int main(int argc, char* argv[]) {

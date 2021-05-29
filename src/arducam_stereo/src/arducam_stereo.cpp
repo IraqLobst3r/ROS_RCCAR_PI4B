@@ -214,8 +214,19 @@ class ArducamStereoNode : public rclcpp::Node {
         p_frame_left->height = p_codec_context_->height;
 
         if (av_frame_get_buffer(p_frame_left, 0) < 0) {
-            RCLCPP_ERROR(this->get_logger(), "Could not allocate the video frame data");
-            throw std::runtime_error("Could not allocate the video frame data");
+            RCLCPP_ERROR(this->get_logger(), "Could not allocate the left video frame data");
+            throw std::runtime_error("Could not allocate the left video frame data");
+        }
+
+        // configer frame for encoder
+        p_frame_right = av_frame_alloc();
+        p_frame_right->format = p_codec_context_->pix_fmt;
+        p_frame_right->width = p_codec_context_->width;
+        p_frame_right->height = p_codec_context_->height;
+
+        if (av_frame_get_buffer(p_frame_right, 0) < 0) {
+            RCLCPP_ERROR(this->get_logger(), "Could not allocate the right video frame data");
+            throw std::runtime_error("Could not allocate the right video frame data");
         }
 
         start_cam_thread();
@@ -288,20 +299,24 @@ class ArducamStereoNode : public rclcpp::Node {
             if (res < 0) {
                 RCLCPP_ERROR(this->get_logger(), "Could not fill image");
             }
+            RCLCPP_INFO(this->get_logger(), "image to frame OK");
             // copy frame
             if(av_frame_copy(p_frame_right, p_frame_left)){
                 RCLCPP_ERROR(this->get_logger(), "Could not copy frame");
             }
+            RCLCPP_INFO(this->get_logger(), "copy frame OK");
             //crop image
             p_frame_left->crop_left = _width/2;
             if(av_frame_apply_cropping(p_frame_left,0) < 0){
                 RCLCPP_ERROR(this->get_logger(), "Could not crop left frame");
             }
+            RCLCPP_INFO(this->get_logger(), "crop left frame OK");
             //crop image
             p_frame_right->crop_right = _width/2;
             if(av_frame_apply_cropping(p_frame_left,0) < 0){
                 RCLCPP_ERROR(this->get_logger(), "Could not crop right frame");
             }
+            RCLCPP_INFO(this->get_logger(), "crop right frame OK");
             // set image count for encoder
             p_frame_left->pts = _seq;
             p_frame_right->pts = _seq;

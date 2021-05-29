@@ -49,7 +49,7 @@ install(
 )
 
 install(PROGRAMS scripts/v4l2_controls.sh
-    DESTINATION lib/${PROJECT_NAME}}
+    DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

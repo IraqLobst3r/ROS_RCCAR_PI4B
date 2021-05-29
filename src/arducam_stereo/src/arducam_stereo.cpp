@@ -366,7 +366,7 @@ class ArducamStereoNode : public rclcpp::Node {
                 h264_msg_right.header.stamp = this->now();
 
                 if (publisher_right->get_subscription_count() > 0) {
-                    publisher_right->publish(h264_msg);
+                    publisher_right->publish(h264_msg_right);
                 }
             }
 

@@ -44,6 +44,17 @@ target_include_directories(arducam_stereo PUBLIC
 install(TARGETS arducam_stereo
   DESTINATION lib/${PROJECT_NAME})
 
+add_executable(arducam_stereo_sandbox src/arducam_stereo_sandbox.cpp)
+target_link_libraries(arducam_stereo_sandbox ${ARDUCAM_MIPI} PkgConfig::LIBAV)
+ament_target_dependencies(arducam_stereo_sandbox rclcpp custom_interfaces)
+
+target_include_directories(arducam_stereo_sandbox PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+install(TARGETS arducam_stereo_sandbox
+  DESTINATION lib/${PROJECT_NAME})
+
 add_executable(arducam_singlemode src/arducam_singlemode.cpp)
 target_link_libraries(arducam_singlemode ${ARDUCAM_MIPI} PkgConfig::LIBAV)
 ament_target_dependencies(arducam_singlemode rclcpp custom_interfaces)

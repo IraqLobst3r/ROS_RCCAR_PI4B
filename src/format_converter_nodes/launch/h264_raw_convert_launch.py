@@ -47,33 +47,5 @@ def generate_launch_description():
                     }
                 ],
             ),
-            Node(
-                package="format_converter_nodes",
-                executable="h264_to_raw",
-                name="arducam_raw_cam0",
-                # make shure to print output in console
-                output="screen",
-                emulate_tty=True,
-                parameters=[
-                    {
-                        "pub_topic": "/arducam_cam0/raw",
-                        "sub_topic": "/arducam_cam0/h264_image",
-                    }
-                ],
-            ),
-            Node(
-                package="format_converter_nodes",
-                executable="h264_to_raw",
-                name="arducam_raw_cam1",
-                # make shure to print output in console
-                output="screen",
-                emulate_tty=True,
-                parameters=[
-                    {
-                        "pub_topic": "/arducam_cam1/raw",
-                        "sub_topic": "/arducam_cam1/h264_image",
-                    }
-                ],
-            ),
         ]
     )

@@ -62,8 +62,8 @@ class ArducamStereoNode : public rclcpp::Node {
             _frame_id + "/h264_image", 10);
 
         struct camera_interface cam_interface = {
-            .i2c_bus = 0,    // /dev/i2c-0  or /dev/i2c-1
-            .camera_num = 0, // mipi interface num
+            .i2c_bus = _cam_num,    // /dev/i2c-0  or /dev/i2c-1
+            .camera_num = _cam_num, // mipi interface num
             .sda_pins = {28,
                          0}, // enable sda_pins[camera_num], disable sda_pins[camera_num ? 0 : 1]
             .scl_pins = {29,
@@ -182,7 +182,7 @@ class ArducamStereoNode : public rclcpp::Node {
 
         // configer frame for encoder
         p_frame_ = av_frame_alloc();
-        p_frame_->format = p_codec_context_left->pix_fmt;
+        p_frame_->format = p_codec_context_->pix_fmt;
         p_frame_->width = _width;
         p_frame_->height = _height;
 

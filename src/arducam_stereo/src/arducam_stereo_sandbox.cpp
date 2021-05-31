@@ -16,6 +16,12 @@ extern "C" {
 #include "libavdevice/avdevice.h"
 #include "libavutil/imgutils.h"
 #include "libswscale/swscale.h"
+
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
+#include <libavutil/opt.h>
 }
 
 #include "arducam_mipicamera.h"
@@ -28,8 +34,6 @@ extern "C" {
 
 std::mutex mutex_run;
 bool run = true;
-int width_aligned;
-int height_aligned;
 
 class ArducamStereoNode : public rclcpp::Node {
   public:
@@ -56,13 +60,13 @@ class ArducamStereoNode : public rclcpp::Node {
         this->get_parameter("blue_gain", _blue_gain);
 
         publisher_left = this->create_publisher<custom_interfaces::msg::H264Image>(
-            _frame_id + "/h264_image/left", 10);
-        publisher_right = this->create_publisher<custom_interfaces::msg::H264Image>(
             _frame_id + "/h264_image/right", 10);
+        publisher_right = this->create_publisher<custom_interfaces::msg::H264Image>(
+            _frame_id + "/h264_image/left", 10);
 
         this->init_cam();
         this->init_decoder();
-        this->init_filter();
+        this->init_filter(this->filter_descr);
 
         this->start_cam_thread();
         this->publish_images();
@@ -142,6 +146,8 @@ class ArducamStereoNode : public rclcpp::Node {
     }
 
     void init_filter(const char* filters_descr) {
+        RCLCPP_INFO(this->get_logger(), "Init Filter");
+        char args[512];
         int ret = 0;
         const AVFilter* buffersrc = avfilter_get_by_name("buffer");
         const AVFilter* buffersink = avfilter_get_by_name("buffersink");
@@ -156,6 +162,13 @@ class ArducamStereoNode : public rclcpp::Node {
             avfilter_inout_free(&inputs);
             avfilter_inout_free(&outputs);
         }
+
+            /* buffer video source: the decoded frames from the decoder will be inserted here. */
+        snprintf(args, sizeof(args),
+            "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+            p_frame_right->width,  p_frame_right->height, p_codec_context_right->pix_fmt,
+            p_codec_context_right->time_base.num, p_codec_context_right->time_base.den,
+            p_codec_context_right->sample_aspect_ratio.num, p_codec_context_right->sample_aspect_ratio.den);
 
         ret =
             avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, filter_graph);
@@ -204,6 +217,7 @@ class ArducamStereoNode : public rclcpp::Node {
     }
 
     void init_decoder() {
+        RCLCPP_INFO(this->get_logger(), "Init Decoder");
         av_register_all();
         avdevice_register_all();
         av_log_set_level(AV_LOG_INFO);
@@ -311,7 +325,7 @@ class ArducamStereoNode : public rclcpp::Node {
 
                 lk.unlock();
                 con_v.notify_all();
-                sleep(1);
+                /* sleep(1); */
             }
 
             // close camera instance
@@ -330,6 +344,7 @@ class ArducamStereoNode : public rclcpp::Node {
         bool flag_left;
         bool flag_right;
         filt_frame = av_frame_alloc();
+        int _height_aligned = VCOS_ALIGN_UP(_height, 16);
         while (rclcpp::ok() && !stop_signal_) {
 
             std::unique_lock<std::mutex> lk(mutex_);
@@ -362,21 +377,19 @@ class ArducamStereoNode : public rclcpp::Node {
             res = av_image_fill_arrays(
                 p_frame_left->data, p_frame_left->linesize,
                 const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(buf->data)),
-                AV_PIX_FMT_YUV420P, _width, _height, 32);
+                AV_PIX_FMT_YUV420P, _width, _height_aligned, 16);
             if (res < 0) {
                 RCLCPP_ERROR(this->get_logger(), "Could not fill image");
             }
-            RCLCPP_INFO(this->get_logger(), "image to left frame OK");
 
             // write cam image in frame
             res = av_image_fill_arrays(
                 p_frame_right->data, p_frame_right->linesize,
                 const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(buf->data)),
-                AV_PIX_FMT_YUV420P, _width, _height, 32);
+                AV_PIX_FMT_YUV420P, _width, _height_aligned, 16);
             if (res < 0) {
                 RCLCPP_ERROR(this->get_logger(), "Could not fill image");
             }
-            RCLCPP_INFO(this->get_logger(), "image to right frame OK");
 
             // set image count for encoder
             p_frame_left->pts = _seq;
@@ -390,11 +403,11 @@ class ArducamStereoNode : public rclcpp::Node {
             }
 
             /* pull filtered frames from the filtergraph */
-            ret = av_buffersink_get_frame(buffersink_ctx, filt_frame);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            res = av_buffersink_get_frame(buffersink_ctx, filt_frame);
+            if (res == AVERROR(EAGAIN) || res == AVERROR_EOF) {
                 RCLCPP_ERROR(this->get_logger(), "Could not get filtert frame");
             }
-            if (ret < 0) {
+            if (res < 0) {
                 RCLCPP_ERROR(this->get_logger(), "Filtergraph error");
                 throw std::runtime_error("Filtergraph error");
             }
@@ -445,6 +458,13 @@ class ArducamStereoNode : public rclcpp::Node {
             _seq++;
             arducam_release_buffer(buf);
         }
+
+        avfilter_graph_free(&filter_graph);
+        avcodec_free_context(&p_codec_context_left);
+        avcodec_free_context(&p_codec_context_right);
+        av_frame_free(&p_frame_left);
+        av_frame_free(&p_frame_right);
+        av_frame_free(&filt_frame);
 
         if (cam_thread_.joinable()) {
             stop_signal_ = true;

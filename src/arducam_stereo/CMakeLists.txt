@@ -28,6 +28,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
     libavdevice
     libavformat
+    libavfilter
     libavcodec
     libavutil
     libswscale

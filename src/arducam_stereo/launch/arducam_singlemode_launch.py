@@ -19,7 +19,7 @@ def generate_launch_description():
                     {
                         "width": 1920,
                         "height": 1080,
-                        "cam_interface": 0,
+                        "cam_interface": 1,
                         "auto_exposure": True,
                         "exposure_value": 0,
                         "auto_white_balance": True,

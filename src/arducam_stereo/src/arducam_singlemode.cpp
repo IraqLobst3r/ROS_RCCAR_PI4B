@@ -63,11 +63,11 @@ class ArducamStereoNode : public rclcpp::Node {
 
         struct camera_interface cam_interface = {
             .i2c_bus = 0,           // /dev/i2c-0  or /dev/i2c-1
-            .camera_num = _cam_num, // mipi interface num
-            .sda_pins = {28, 0},
-            .scl_pins = {29, 1},
-            .shutdown_pins = {31, 3},
-            .led_pins = {30, 2},
+            .camera_num = 0, // mipi interface num
+            .sda_pins = {0, 28},
+            .scl_pins = {1, 29},
+            .shutdown_pins = {3, 31},
+            .led_pins = {2, 30},
         };
         int res;
         RCLCPP_INFO(this->get_logger(), "Opening camera...");

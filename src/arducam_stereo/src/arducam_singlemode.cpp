@@ -169,9 +169,9 @@ class ArducamStereoNode : public rclcpp::Node {
         p_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
         p_codec_context_->width = _width;
         p_codec_context_->height = _height;
-        p_codec_context_left->profile = FF_PROFILE_H264_HIGH;
+        p_codec_context_->profile = FF_PROFILE_H264_HIGH;
 
-        if (p_codec_left->id == AV_CODEC_ID_H264) {
+        if (p_codec_->id == AV_CODEC_ID_H264) {
             av_opt_set(p_codec_context_->priv_data, "crf", "17", 0);
         }
 
@@ -239,8 +239,6 @@ class ArducamStereoNode : public rclcpp::Node {
         RCLCPP_INFO(this->get_logger(), "Start publish images");
 
         int res;
-        bool flag_left;
-        bool flag_right;
         while (rclcpp::ok() && !stop_signal_) {
 
             std::unique_lock<std::mutex> lk(mutex_);

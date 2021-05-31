@@ -61,6 +61,14 @@ class ArducamStereoNode : public rclcpp::Node {
         publisher_ = this->create_publisher<custom_interfaces::msg::H264Image>(
             _frame_id + "/h264_image", 10);
 
+        struct camera_interface cam_interface = {
+            .i2c_bus = 0,           // /dev/i2c-0  or /dev/i2c-1
+            .camera_num = _cam_num, // mipi interface num
+            .sda_pins = {28, 0},
+            .scl_pins = {29, 1},
+            .shutdown_pins = {31, 3},
+            .led_pins = {30, 2},
+        };
         int res;
         RCLCPP_INFO(this->get_logger(), "Opening camera...");
         res = arducam_init_camera2(&camera_instance, cam_interface);
@@ -291,14 +299,6 @@ class ArducamStereoNode : public rclcpp::Node {
             cam_thread_.join();
         }
     }
-    struct camera_interface cam_interface = {
-        .i2c_bus = 0,    // /dev/i2c-0  or /dev/i2c-1
-        .camera_num = 0, // mipi interface num
-        .sda_pins = {28, 0},
-        .scl_pins = {29, 1},
-        .shutdown_pins = {31, 3},
-        .led_pins = {30, 2},
-    };
     std::queue<BUFFER*> buffer_queue;
     std::condition_variable con_v;
     std::mutex mutex_;
